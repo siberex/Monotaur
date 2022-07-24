@@ -11,7 +11,7 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
 const geometry = new BoxGeometry( 1, 1, 1 );
-const material = new MeshBasicMaterial( { color: 0x00ff00 } );
+const material = new MeshBasicMaterial( { color: 0x00ff00, wireframe: true } );
 const cube = new Mesh( geometry, material );
 scene.add( cube );
 
