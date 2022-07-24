@@ -4,7 +4,7 @@
   "description": "It's all started with an I-beam...",
   "main": "index.js",
   "scripts": {
-    "start": "npx http-server --port=8989"
+    "start": "npx http-server -c-1 --port=8989"
   },
   "repository": {
     "type": "git",
@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/siberex/Monotaur#readme",
   "dependencies": {
+    "es-module-shims": "^1.5.9",
     "three": "^0.142.0"
   },
   "devDependencies": {
