@@ -1,15 +1,16 @@
 {
   "name": "monotaur",
   "version": "1.0.0",
-  "description": "It's all started with I-beam...",
+  "description": "It's all started with an I-beam...",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "npx http-server --port=8989"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/siberex/Monotaur.git"
   },
+  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -19,5 +20,8 @@
   "homepage": "https://github.com/siberex/Monotaur#readme",
   "dependencies": {
     "three": "^0.142.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
   }
 }
