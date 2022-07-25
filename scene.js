@@ -17,7 +17,7 @@ import { CSG } from 'three-csg-ts';
 
 import {svg} from './data.js';
 
-const DEBUG = false;
+const DEBUG = true;
 
 // Init three.js scene
 const scene = new Scene();
@@ -56,10 +56,18 @@ const material = new MeshNormalMaterial({ wireframe: DEBUG });
 // Loop through all the parsed paths
 svgDataLeft.paths.forEach(path => {
     // Note: To correctly extract holes, use SVGLoader.createShapes(), not path.toShapes() !
-    const shapes = SVGLoader.createShapes( path );
+    const shapes = path.toShapes(true, true);
+
+    shapes[0].holes = [shapes[1]];
+
+    const shape = shapes[0];
+
+
 
     // Each path has an array of shapes
-    shapes.forEach(shape => {
+    shapes.forEach((shape, i) => {
+        // if (i > 0) return;
+
         // Get width from shape []Vector2 coordinates
         // Use extractPoints().shape to skip holes
         const shapeWidth = shape.extractPoints().shape.reduce(
@@ -128,7 +136,6 @@ intersectionGroup.add(intersection);
 const box = new Box3().setFromObject(intersectionGroup);
 let vectorSize = new Vector3();
 box.getSize(vectorSize);
-console.log(vectorSize);
 
 // Reverse group scaleFactor for correct children offsetting
 
@@ -141,11 +148,6 @@ intersectionGroup.children.forEach((item, i) => {
     item.translateY(-vectorSize.y / 2);
     item.translateZ(-vectorSize.z / 2);
 });
-
-// intersectionGroup.scale.multiplyScalar( scaleFactor );
-
-
-
 
 // Axes helper
 if (DEBUG) {
@@ -163,7 +165,7 @@ scene.add(intersectionGroup);
 // const cube = new Mesh( geometry, material );
 // scene.add( cube );
 
-camera.position.z = 5000;
+camera.position.z = 2000;
 
 function animate() {
     requestAnimationFrame( animate );
