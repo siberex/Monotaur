@@ -3,6 +3,7 @@ import {
     Box3,
     ExtrudeGeometry,
     Group,
+    MathUtils,
     Mesh,
     MeshNormalMaterial,
     PerspectiveCamera,
@@ -37,7 +38,8 @@ window.addEventListener('resize', function(e) {
 // Load SVG and extrude surface from SVG paths
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
-const svgData = loader.parse(svg[8]);
+const svgDataLeft = loader.parse(svg[1]);
+const svgDataRight = loader.parse(svg[2]);
 
 // Group we'll use for all SVG paths
 const group = new Group();
@@ -51,7 +53,7 @@ group.scale.multiplyScalar( scaleFactor );
 const material = new MeshNormalMaterial({ wireframe: DEBUG });
 
 // Loop through all the parsed paths
-svgData.paths.forEach(path => {
+svgDataLeft.paths.forEach(path => {
     // Note: To correctly extract holes, use SVGLoader.createShapes(), not path.toShapes() !
     const shapes = SVGLoader.createShapes( path );
 
@@ -76,7 +78,42 @@ svgData.paths.forEach(path => {
         });
 
         // Create a mesh and add it to the group
+        const mesh = new Mesh(geometry, new MeshNormalMaterial({ wireframe: true }));
+        group.add(mesh);
+    });
+});
+
+svgDataRight.paths.forEach(path => {
+    const shapes = SVGLoader.createShapes( path );
+
+    // Each path has an array of shapes
+    shapes.forEach(shape => {
+        // Get width from shape []Vector2 coordinates
+        // Use extractPoints().shape to skip holes
+        const shapeWidth = shape.extractPoints().shape.reduce(
+            (acc, vec) => vec.width > acc ? vec.width : acc,
+            0
+        );
+
+        // Finally we can take each shape and extrude it
+        const geometry = new ExtrudeGeometry(shape, {
+            depth: shapeWidth,
+            bevelEnabled: false
+        });
+
+        // Rotate geometry, non mesh
+        geometry.rotateY(MathUtils.degToRad(90));
+
+        // Create a mesh and add it to the group
         const mesh = new Mesh(geometry, material);
+
+        // X = red
+        // Y = green
+        // Z = blue
+
+        // Shift along z-axis after rotation
+        mesh.position.z = 660;
+
         group.add(mesh);
     });
 });
@@ -90,19 +127,23 @@ svgData.paths.forEach(path => {
 const box = new Box3().setFromObject(group);
 let vectorSize = new Vector3();
 box.getSize(vectorSize);
+// console.log(vectorSize);
 
+// group.position.copy(vectorSize);
 // Revere group scaleFactor for correct children offsetting
 vectorSize.multiplyScalar(1 / scaleFactor);
 
 // Offset each dimension half its length to center group elements
 vectorSize.multiplyScalar(-0.5);
-group.children.forEach(item => {
-    item.position.copy(vectorSize);
+group.children.forEach((item, i) => {
+    item.translateX(vectorSize.x);
+    item.translateY(vectorSize.y);
+    item.translateZ(vectorSize.z);
 });
 
 // Axes helper
 if (DEBUG) {
-    const axesHelper = new AxesHelper(500);
+    const axesHelper = new AxesHelper(1500);
     group.add(axesHelper);
 }
 
@@ -120,7 +161,7 @@ camera.position.z = 2000;
 function animate() {
     requestAnimationFrame( animate );
 
-    group.rotation.y += 0.01;
+    group.rotation.y -= 0.01;
 
     renderer.render( scene, camera );
 }
