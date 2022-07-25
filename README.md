@@ -8,11 +8,13 @@ Goals:
 
     Example: Extrude I-beam surface from `I` shape.
 
-  - [ ] Tricky part: cut-out shapes with subtracted geometry.
+  - [x] Tricky part: cut-out shapes with subtracted geometry.
 
     Example: Extrude ring surface from `O` shape.
 
 - [ ] Boolean Intersect two perpendicular surfaces extracted that way.
+  - https://github.com/sshirokov/ThreeBSP
+  - https://github.com/manthrax/THREE-CSGMesh
 
 - [x] Simple rotational animation.
 

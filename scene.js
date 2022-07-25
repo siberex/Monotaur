@@ -37,7 +37,7 @@ window.addEventListener('resize', function(e) {
 // Load SVG and extrude surface from SVG paths
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
-const svgData = loader.parse(svg[1]);
+const svgData = loader.parse(svg[8]);
 
 // Group we'll use for all SVG paths
 const group = new Group();
@@ -51,26 +51,24 @@ group.scale.multiplyScalar( scaleFactor );
 const material = new MeshNormalMaterial({ wireframe: DEBUG });
 
 // Loop through all the parsed paths
-svgData.paths.forEach((path, i) => {
-    const shapes = path.toShapes(true);
+svgData.paths.forEach(path => {
+    // Note: To correctly extract holes, use SVGLoader.createShapes(), not path.toShapes() !
+    const shapes = SVGLoader.createShapes( path );
 
-    // Each path has array of shapes
-    shapes.forEach((shape, j) => {
-        if (j > 0) {
-            // More than one path probably means subtracted geometry (cutaway shape)
-            // ...
+    // Each path has an array of shapes
+    shapes.forEach(shape => {
+        if (DEBUG) {
+            console.info(shape.extractPoints());
         }
 
         // Finally we can take each shape and extrude it
         const geometry = new ExtrudeGeometry(shape, {
-            steps: 1,
             depth: 660,
             bevelEnabled: false
         });
 
         // Create a mesh and add it to the group
         const mesh = new Mesh(geometry, material);
-
         group.add(mesh);
     });
 });
