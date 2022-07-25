@@ -17,7 +17,7 @@ import { CSG } from 'three-csg-ts';
 
 import {svg} from './data.js';
 
-const DEBUG = true;
+const DEBUG = false;
 
 // Init three.js scene
 const scene = new Scene();
@@ -67,11 +67,6 @@ svgDataLeft.paths.forEach(path => {
             0
         );
 
-        if (DEBUG) {
-            console.info(shapeWidth, 'width');
-            console.info(shape.extractPoints());
-        }
-
         // Finally we can take each shape and extrude it
         const geometry = new ExtrudeGeometry(shape, {
             depth: shapeWidth,
@@ -79,7 +74,9 @@ svgDataLeft.paths.forEach(path => {
         });
 
         // Create a mesh and add it to the group
-        const mesh = new Mesh(geometry, new MeshNormalMaterial({ wireframe: true }));
+        const mesh = new Mesh(geometry, material);
+        // const mesh = new Mesh(geometry, new MeshNormalMaterial({ wireframe: true }));
+        mesh.updateMatrix();
         group.add(mesh);
     });
 });
@@ -114,49 +111,51 @@ svgDataRight.paths.forEach(path => {
 
         // Shift along z-axis after rotation
         mesh.position.z = 660;
-
+        mesh.updateMatrix();
         group.add(mesh);
     });
 });
 
 
-// Meshes we got are all relative to themselves
-// meaning they have position set to (0, 0, 0)
-// which makes centering them in the group easy
+const intersection = CSG.intersect(group.children[0], group.children[1]);
+
+const intersectionGroup = new Group();
+intersectionGroup.scale.y *= -1;
+
+intersectionGroup.add(intersection);
 
 // Get group's size
-const box = new Box3().setFromObject(group);
+const box = new Box3().setFromObject(intersectionGroup);
 let vectorSize = new Vector3();
 box.getSize(vectorSize);
-// console.log(vectorSize);
+console.log(vectorSize);
 
-// group.position.copy(vectorSize);
-// Revere group scaleFactor for correct children offsetting
-vectorSize.multiplyScalar(1 / scaleFactor);
+// Reverse group scaleFactor for correct children offsetting
+
 
 // Offset each dimension half its length to center group elements
-vectorSize.multiplyScalar(-0.5);
-group.children.forEach((item, i) => {
-    item.translateX(vectorSize.x);
-    item.translateY(vectorSize.y);
-    item.translateZ(vectorSize.z);
+// vectorSize.multiplyScalar(-0.5);
+intersectionGroup.children.forEach((item, i) => {
+    // item.position.copy(vectorSize);
+    item.translateX(-vectorSize.x / 2);
+    item.translateY(-vectorSize.y / 2);
+    item.translateZ(-vectorSize.z / 2);
 });
 
-group.children[0].updateMatrix();
-group.children[1].updateMatrix();
+// intersectionGroup.scale.multiplyScalar( scaleFactor );
 
-const intersection = CSG.intersect(group.children[0], group.children[1]);
+
 
 
 // Axes helper
 if (DEBUG) {
     const axesHelper = new AxesHelper(1500);
-    group.add(axesHelper);
+    intersectionGroup.add(axesHelper);
 }
 
 // Finally we add svg group to the scene
 // scene.add(group);
-scene.add(intersection);
+scene.add(intersectionGroup);
 
 
 // const geometry = new BoxGeometry( 1, 1, 1 );
@@ -170,7 +169,7 @@ function animate() {
     requestAnimationFrame( animate );
 
     // group.rotation.y -= 0.01;
-    intersection.rotation.y -= 0.01;
+    intersectionGroup.rotation.y -= 0.01;
 
     renderer.render( scene, camera );
 }
