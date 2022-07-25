@@ -13,6 +13,7 @@ import {
 } from 'three';
 import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
+import { CSG } from 'three-csg-ts';
 
 import {svg} from './data.js';
 
@@ -141,6 +142,12 @@ group.children.forEach((item, i) => {
     item.translateZ(vectorSize.z);
 });
 
+group.children[0].updateMatrix();
+group.children[1].updateMatrix();
+
+const intersection = CSG.intersect(group.children[0], group.children[1]);
+
+
 // Axes helper
 if (DEBUG) {
     const axesHelper = new AxesHelper(1500);
@@ -148,7 +155,8 @@ if (DEBUG) {
 }
 
 // Finally we add svg group to the scene
-scene.add(group);
+// scene.add(group);
+scene.add(intersection);
 
 
 // const geometry = new BoxGeometry( 1, 1, 1 );
@@ -156,12 +164,13 @@ scene.add(group);
 // const cube = new Mesh( geometry, material );
 // scene.add( cube );
 
-camera.position.z = 2000;
+camera.position.z = 5000;
 
 function animate() {
     requestAnimationFrame( animate );
 
-    group.rotation.y -= 0.01;
+    // group.rotation.y -= 0.01;
+    intersection.rotation.y -= 0.01;
 
     renderer.render( scene, camera );
 }
