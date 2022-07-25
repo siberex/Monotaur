@@ -73,7 +73,9 @@ svgDataLeft.paths.forEach(path => {
         });
 
         // Create a mesh and add it to the group
-        const mesh = new Mesh(geometry, new MeshNormalMaterial({ wireframe: true }));
+        const mesh = new Mesh(geometry, material);
+        // const mesh = new Mesh(geometry, new MeshNormalMaterial({ wireframe: true }));
+        mesh.updateMatrix();
         group.add(mesh);
     });
 });
@@ -108,7 +110,7 @@ svgDataRight.paths.forEach(path => {
 
         // Shift along z-axis after rotation
         mesh.position.z = 660;
-
+        mesh.updateMatrix();
         group.add(mesh);
     });
 });
@@ -125,7 +127,15 @@ svgDataRight.paths.forEach(path => {
             0
         );
 
-        // Finally we can take each shape and extrude it
+        const intersection = CSG.intersect(group.children[0], group.children[1]);
+
+const intersectionGroup = new Group();
+intersectionGroup.scale.y *= -1;
+
+intersectionGroup.add(intersection);
+
+
+// Finally we can take each shape and extrude it
         const geometry = new ExtrudeGeometry(shape, {
             depth: shapeWidth,
             bevelEnabled: false
@@ -172,6 +182,11 @@ intersectionGroup.children.forEach((item, i) => {
     item.translateY(-vectorSize.y / 2);
     item.translateZ(-vectorSize.z / 2);
 });
+
+// intersectionGroup.scale.multiplyScalar( scaleFactor );
+
+
+
 
 // Axes helper
 if (DEBUG) {
