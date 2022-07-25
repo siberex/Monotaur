@@ -37,7 +37,7 @@ window.addEventListener('resize', function(e) {
 // Load SVG and extrude surface from SVG paths
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
-const svgData = loader.parse(svg[0]);
+const svgData = loader.parse(svg[10]);
 
 // Group we'll use for all SVG paths
 const group = new Group();
@@ -95,7 +95,7 @@ group.children.forEach(item => {
 
 // Axes helper
 if (DEBUG) {
-    const axesHelper = new AxesHelper(500);
+    const axesHelper = new AxesHelper(1000);
     group.add(axesHelper);
 }
 
