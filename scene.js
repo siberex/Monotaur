@@ -15,7 +15,7 @@ import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 
 import {svg} from './data.js';
 
-const DEBUG = false;
+const DEBUG = true;
 
 // Init three.js scene
 const scene = new Scene();
@@ -48,38 +48,23 @@ group.scale.y *= -1;
 const scaleFactor = 0.5;
 group.scale.multiplyScalar( scaleFactor );
 
-const material = new MeshNormalMaterial({ wireframe: DEBUG });
+const material = new MeshNormalMaterial({ wireframe: false });
 
 // Loop through all the parsed paths
 svgData.paths.forEach(path => {
-    // Note: To correctly extract holes, use SVGLoader.createShapes(), not path.toShapes() !
-    const shapes = path.toShapes(true, true);
+    // Note: To correctly extract holes, use SVGLoader.createShapes(), not path.toShapes()
+    const shapes = SVGLoader.createShapes(path);
 
-    shapes[0].holes = [shapes[1]];
-
-    const shape = shapes[0];
-
-
-
-    // Each path has an array of shapes
-    shapes.forEach((shape, i) => {
-        // if (i > 0) return;
-
+    shapes.forEach(shape => {
         // Get width from shape []Vector2 coordinates
-        // Use extractPoints().shape to skip holes
-        const shapeWidth = shape.extractPoints().shape.reduce(
+        const shapeWidth = shape.getPoints().reduce(
             (acc, vec) => vec.width > acc ? vec.width : acc,
             0
         );
 
-        if (DEBUG) {
-            console.info(shapeWidth, 'width');
-            console.info(shape.extractPoints());
-        }
-
         // Finally we can take each shape and extrude it
         const geometry = new ExtrudeGeometry(shape, {
-            depth: 660,
+            depth: shapeWidth,
             bevelEnabled: false
         });
 
