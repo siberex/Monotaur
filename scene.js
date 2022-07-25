@@ -57,13 +57,21 @@ svgData.paths.forEach(path => {
 
     // Each path has an array of shapes
     shapes.forEach(shape => {
+        // Get width from shape []Vector2 coordinates
+        // Use extractPoints().shape to skip holes
+        const shapeWidth = shape.extractPoints().shape.reduce(
+            (acc, vec) => vec.width > acc ? vec.width : acc,
+            0
+        );
+
         if (DEBUG) {
+            console.info(shapeWidth, 'width');
             console.info(shape.extractPoints());
         }
 
         // Finally we can take each shape and extrude it
         const geometry = new ExtrudeGeometry(shape, {
-            depth: 660,
+            depth: shapeWidth,
             bevelEnabled: false
         });
 
