@@ -58,6 +58,7 @@ svgDataLeft.paths.forEach(path => {
     // Note: To correctly extract holes, use SVGLoader.createShapes(), not path.toShapes()
     const shapes = SVGLoader.createShapes(path);
 
+    // Each path has an array of shapes
     shapes.forEach(shape => {
         // Get width from shape []Vector2 coordinates
         const shapeWidth = shape.getPoints().reduce(
@@ -72,9 +73,42 @@ svgDataLeft.paths.forEach(path => {
         });
 
         // Create a mesh and add it to the group
+        const mesh = new Mesh(geometry, new MeshNormalMaterial({ wireframe: true }));
+        group.add(mesh);
+    });
+});
+
+svgDataRight.paths.forEach(path => {
+    const shapes = SVGLoader.createShapes( path );
+
+    // Each path has an array of shapes
+    shapes.forEach(shape => {
+        // Get width from shape []Vector2 coordinates
+        // Use extractPoints().shape to skip holes
+        const shapeWidth = shape.extractPoints().shape.reduce(
+            (acc, vec) => vec.width > acc ? vec.width : acc,
+            0
+        );
+
+        // Finally we can take each shape and extrude it
+        const geometry = new ExtrudeGeometry(shape, {
+            depth: shapeWidth,
+            bevelEnabled: false
+        });
+
+        // Rotate geometry, non mesh
+        geometry.rotateY(MathUtils.degToRad(90));
+
+        // Create a mesh and add it to the group
         const mesh = new Mesh(geometry, material);
-        // const mesh = new Mesh(geometry, new MeshNormalMaterial({ wireframe: true }));
-        mesh.updateMatrix();
+
+        // X = red
+        // Y = green
+        // Z = blue
+
+        // Shift along z-axis after rotation
+        mesh.position.z = 660;
+
         group.add(mesh);
     });
 });
