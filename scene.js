@@ -44,7 +44,7 @@ window.addEventListener('resize', onWindowResize);
 // Load SVG, extrude surface from SVG paths and Binary Intersect resulting Meshes
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
-const material = new MeshNormalMaterial({ wireframe: true });
+const material = new MeshNormalMaterial({ wireframe: false });
 
 /**
  * Parse all SVG text chunks.
@@ -104,27 +104,24 @@ scene.add(group);
 const rotationStep = MathUtils.degToRad(-0.3);
 
 window.yarr = function() {
-    group.rotateY(MathUtils.degToRad(-10));
-    console.log(group.rotation.y, MathUtils.radToDeg(group.rotation.y));
+    group.rotateY(MathUtils.degToRad(-45));
+    let qdr = GetRotationQuadrant(group);
+    console.log(qdr);
 }
-
-// group.rotation.y = MathUtils.degToRad(30);
-// group.setRotationFromAxisAngle(new Vector3(0, 1, 0), MathUtils.degToRad(30));
-// console.log(group.rotation.y)
 
 function animate() {
     requestAnimationFrame( animate );
 
     group.rotateY(rotationStep);
 
-    if (group.rotation.y < 0 && group.rotation.y > MathUtils.degToRad(-90)) {
+    if (GetRotationQuadrant(group) === 1) {
         material.wireframe = false;
     } else {
         material.wireframe = true;
     }
 
-    // renderer.render( scene, camera );
-    renderer.render( scene, cameraOrtho );
+    renderer.render( scene, camera );
+    // renderer.render( scene, cameraOrtho );
 }
 
 if ( WebGL.isWebGLAvailable() ) {
@@ -203,6 +200,48 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     return result;
 }
 
+
+/**
+ * Get direction quadrant based on absolute rotation angle φ.
+ *
+ * 0: NE, φ ∈ [0; ½π)
+ * 1: NW, φ ∈ [½π; π)
+ * 2: SW, φ ∈ [π; ¾π)
+ * 3: SE, φ ∈ [¾π; 2π)
+ *
+ * Note: cardinal points NE/NW/SW/SE are ambiguous “directions”,
+ * used just for explainer here.
+ * North could not be derived just from the rotation angle.
+ *
+ * @param obj3d {Object3D}
+ * @returns {number}
+ * @constructor
+ */
+function GetRotationQuadrant(obj3d) {
+    const direction = new Vector3();
+    const PI = Math.PI;
+
+    // Short explainer on Quaternions and Euler angles
+    // https://discourse.threejs.org/t/when-i-rotate-an-object-how-do-i-know-its-true-angle-of-rotation/4573/9
+    // https://stackoverflow.com/a/34329880/1412330
+    obj3d.getWorldDirection(direction);
+    let a = Math.atan2(direction.x, direction.z);
+
+    // Convert interval: [-π; π] → [0; 2π)
+    a = ( a + PI ) % ( 2 * PI );
+
+    if (0 <= a && a < PI / 2) {
+        return 0;
+    } else if (PI / 2 <= a && a < PI) {
+        return 1;
+    } else if (PI <= a && a < PI + PI / 2) {
+        return 2;
+    } else if (PI + PI / 2 <= a && a < 2 * PI) {
+        return 3;
+    }
+
+    return 0;
+}
 
 
 function onWindowResize() {
