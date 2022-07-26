@@ -1,11 +1,11 @@
 import {
     AxesHelper,
-    Box3,
     ExtrudeGeometry,
     Group,
     MathUtils,
     Mesh,
     MeshNormalMaterial,
+    OrthographicCamera,
     PerspectiveCamera,
     Scene,
     Vector3,
@@ -17,23 +17,28 @@ import { CSG } from 'three-csg-ts';
 
 import {svg} from './data.js';
 
+
+let SCREEN_WIDTH = window.innerWidth;
+let SCREEN_HEIGHT = window.innerHeight;
+let aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
+const frustumSize = 1400;
+
 // Init three.js scene
 const scene = new Scene();
 // https://threejs.org/docs/#api/en/cameras/PerspectiveCamera
-const camera = new PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 0.1, 10000 );
-camera.position.z = 5000;
+const camera = new PerspectiveCamera( 10, aspect, 0.1, 20000 );
+camera.position.z = 8000;
 
-const renderer = new WebGLRenderer({ antialias: true });
-renderer.setSize( window.innerWidth, window.innerHeight );
+// https://threejs.org/docs/#api/en/cameras/OrthographicCamera
+const cameraOrtho = new OrthographicCamera(0.5 * frustumSize * aspect / -2, 0.5 * frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 0.1, 10000);
+cameraOrtho.position.z = 5000;
+
+const renderer = new WebGLRenderer({ antialias: true, precision: 'highp' });
+renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
 document.body.appendChild( renderer.domElement );
 
 // Resize and update camera
-window.addEventListener('resize', function(e) {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
+window.addEventListener('resize', onWindowResize);
 
 
 // Load SVG, extrude surface from SVG paths and Binary Intersect resulting Meshes
@@ -87,7 +92,6 @@ group.scale.y *= -1;
 // group.add(meshes[4]);
 group.add(IntersectionMeshes[1]);
 
-
 // Axes helper
 // const axesHelper = new AxesHelper(1500);
 // intersectionGroup.add(axesHelper);
@@ -99,11 +103,13 @@ scene.add(group);
 
 const rotationStep = MathUtils.degToRad(-0.3);
 
-// group.rotation.y = MathUtils.degToRad(30);
+group.rotation.y = MathUtils.degToRad(0);
 
 function animate() {
     requestAnimationFrame( animate );
 
+    // group.rotateY(rotationStep);
+    // Is this faster that rotateY()?
     group.rotation.y += rotationStep;
 
     renderer.render( scene, camera );
@@ -111,8 +117,8 @@ function animate() {
 
 if ( WebGL.isWebGLAvailable() ) {
     animate();
-    console.log('DONE');
 } else {
+    console.error('WebGL is not available');
     const warning = WebGL.getWebGLErrorMessage();
     document.body.appendChild( warning );
 }
@@ -168,7 +174,6 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
         if (centerOrigin) {
             // Get bounding box
             geometry.computeBoundingBox();
-            // const box = new Box3().setFromObject(geometry);
             let vectorSize = new Vector3();
             geometry.boundingBox.getSize(vectorSize);
 
@@ -184,4 +189,23 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     });
 
     return result;
+}
+
+
+
+function onWindowResize() {
+    SCREEN_WIDTH = window.innerWidth;
+    SCREEN_HEIGHT = window.innerHeight;
+    aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
+
+    renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
+
+    camera.aspect = 0.5 * aspect;
+    camera.updateProjectionMatrix();
+
+    cameraOrtho.left = - 0.5 * frustumSize * aspect / 2;
+    cameraOrtho.right = 0.5 * frustumSize * aspect / 2;
+    cameraOrtho.top = frustumSize / 2;
+    cameraOrtho.bottom = - frustumSize / 2;
+    cameraOrtho.updateProjectionMatrix();
 }
