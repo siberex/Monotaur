@@ -1,5 +1,4 @@
 import {
-    AxesHelper,
     ExtrudeGeometry,
     Group,
     MathUtils,
@@ -14,8 +13,6 @@ import {
 import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 import { CSG } from 'three-csg-ts';
-
-import {svg} from './data.js';
 
 
 let SCREEN_WIDTH = window.innerWidth;
@@ -45,6 +42,24 @@ window.addEventListener('resize', onWindowResize);
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
 const material = new MeshNormalMaterial({ wireframe: false });
+
+
+/**
+ * @type {string[]}
+ */
+const svg = [
+    'M0 1100V0h660v1100H0Zm220-220V220h220v660H220Z',
+    'M220 220v660H0v220h660V880H440V0H0v220z',
+    'M220 660h440V0H0v220h440v220H0v660h660V880H220z',
+    'M0 1100h660V0H0v220h440v220H220v220h220v220H0z',
+    'M440 440H220V0H0v660h440v440h220V0H440z',
+    'M220 440h440v660H0V880h440V660H0V0h660v220H220z',
+    'M0 1100V0h660v220H220v220h440v660zm220-220V660h220v220z',
+    'M660 1100V0H0v220h440v880z',
+    'M660 0v1100H0V0zM220 880V660h220v220zm220-660v220H220V220z',
+    'M660 0v1100H0V880h440V660H0V0zM440 220v220H220V220z',
+].map(path => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 1100" fill-rule="evenodd"><path d="${path}"/></svg>`);
+
 
 /**
  * Parse all SVG text chunks.
@@ -93,24 +108,13 @@ group.scale.y *= -1;
 let modelIndex = 0;
 group.add(IntersectionMeshes[modelIndex]);
 
-// Axes helper
-// const axesHelper = new AxesHelper(1500);
-// intersectionGroup.add(axesHelper);
-
 // Add intersection result to the scene
 scene.add(group);
 
 
 let lastRotationPhase = 1;
 
-
 const rotationStep = MathUtils.degToRad(-1);
-
-window.yarr = function() {
-    group.rotateY(MathUtils.degToRad(-45));
-    let qdr = GetRotationQuadrant(group);
-    console.log(qdr);
-}
 
 function animate() {
     requestAnimationFrame( animate );
