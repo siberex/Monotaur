@@ -30,7 +30,7 @@ const camera = new PerspectiveCamera( 10, aspect, 0.1, 20000 );
 camera.position.z = 8000;
 
 // https://threejs.org/docs/#api/en/cameras/OrthographicCamera
-const cameraOrtho = new OrthographicCamera(0.5 * frustumSize * aspect / -2, 0.5 * frustumSize * aspect / 2, frustumSize / 2, frustumSize / -2, 0.1, 10000);
+const cameraOrtho = new OrthographicCamera(- 0.5 * frustumSize * aspect, 0.5 * frustumSize * aspect, frustumSize / 2, frustumSize / -2, 0.1, 10000);
 cameraOrtho.position.z = 5000;
 
 const renderer = new WebGLRenderer({ antialias: true, precision: 'highp' });
@@ -108,11 +108,15 @@ group.rotation.y = MathUtils.degToRad(0);
 function animate() {
     requestAnimationFrame( animate );
 
-    // group.rotateY(rotationStep);
-    // Is this faster that rotateY()?
-    group.rotation.y += rotationStep;
+    group.rotateY(rotationStep);
 
-    renderer.render( scene, camera );
+    if (group.rotation.y < 0.01 && group.rotation.y > -0.01) {
+        // console.log(group.rotation.y)
+    }
+
+    renderer.setViewport( 0, 0, SCREEN_WIDTH , SCREEN_HEIGHT );
+    // renderer.render( scene, camera );
+    renderer.render( scene, cameraOrtho );
 }
 
 if ( WebGL.isWebGLAvailable() ) {
@@ -200,12 +204,12 @@ function onWindowResize() {
 
     renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
 
-    camera.aspect = 0.5 * aspect;
+    camera.aspect = aspect;
     camera.updateProjectionMatrix();
 
-    cameraOrtho.left = - 0.5 * frustumSize * aspect / 2;
-    cameraOrtho.right = 0.5 * frustumSize * aspect / 2;
+    cameraOrtho.left = - 0.5 * frustumSize * aspect;
+    cameraOrtho.right = 0.5 * frustumSize * aspect;
     cameraOrtho.top = frustumSize / 2;
-    cameraOrtho.bottom = - frustumSize / 2;
+    cameraOrtho.bottom = frustumSize / -2;
     cameraOrtho.updateProjectionMatrix();
 }
