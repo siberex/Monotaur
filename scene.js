@@ -77,7 +77,7 @@ const IntersectionMeshes = meshes.map((mesh, i, items) => {
     const nextIndex = (i + 1) % items.length;
 
     const meshRotated = items[nextIndex].clone();
-    meshRotated.rotateY( MathUtils.degToRad(-90) ); // note scaleY(-1) applied later to the group
+    meshRotated.rotateY( MathUtils.degToRad(90) ); // note scaleY(-1) applied later to the group
     meshRotated.updateMatrix();
 
     return CSG.intersect(mesh, meshRotated);
@@ -103,15 +103,24 @@ scene.add(group);
 
 const rotationStep = MathUtils.degToRad(-0.3);
 
-group.rotation.y = MathUtils.degToRad(0);
+window.yarr = function() {
+    group.rotateY(MathUtils.degToRad(-10));
+    console.log(group.rotation.y, MathUtils.radToDeg(group.rotation.y));
+}
+
+// group.rotation.y = MathUtils.degToRad(30);
+// group.setRotationFromAxisAngle(new Vector3(0, 1, 0), MathUtils.degToRad(30));
+// console.log(group.rotation.y)
 
 function animate() {
     requestAnimationFrame( animate );
 
     group.rotateY(rotationStep);
 
-    if (group.rotation.y < 0.01 && group.rotation.y > -0.01) {
-        // console.log(group.rotation.y)
+    if (group.rotation.y < 0 && group.rotation.y > MathUtils.degToRad(-90)) {
+        material.wireframe = false;
+    } else {
+        material.wireframe = true;
     }
 
     // renderer.render( scene, camera );
