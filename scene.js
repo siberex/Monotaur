@@ -3,6 +3,7 @@ import {
     Box3,
     ExtrudeGeometry,
     Group,
+    MathUtils,
     Mesh,
     MeshNormalMaterial,
     PerspectiveCamera,
@@ -12,10 +13,9 @@ import {
 } from 'three';
 import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
+import { CSG } from 'three-csg-ts';
 
 import {svg} from './data.js';
-
-const DEBUG = true;
 
 // Init three.js scene
 const scene = new Scene();
@@ -37,7 +37,8 @@ window.addEventListener('resize', function(e) {
 // Load SVG and extrude surface from SVG paths
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
-const svgData = loader.parse(svg[0]);
+const svgDataLeft = loader.parse(svg[2]);
+const svgDataRight = loader.parse(svg[3]);
 
 // Group we'll use for all SVG paths
 const group = new Group();
@@ -45,75 +46,43 @@ const group = new Group();
 // it happens in the process of mapping from 2d to 3d coordinate system
 group.scale.y *= -1;
 
-const scaleFactor = 0.5;
-group.scale.multiplyScalar( scaleFactor );
+MeshFromPath(svgDataLeft.paths).forEach(mesh => group.add(mesh));
+MeshFromPath(svgDataRight.paths, true).forEach(mesh => group.add(mesh));
 
-const material = new MeshNormalMaterial({ wireframe: false });
+// Boolean Intersection
+const intersection = CSG.intersect(group.children[0], group.children[1]);
 
-// Loop through all the parsed paths
-svgData.paths.forEach(path => {
-    // Note: To correctly extract holes, use SVGLoader.createShapes(), not path.toShapes()
-    const shapes = SVGLoader.createShapes(path);
+const intersectionGroup = new Group();
+intersectionGroup.scale.y *= -1;
 
-    shapes.forEach(shape => {
-        // Get width from shape []Vector2 coordinates
-        const shapeWidth = shape.getPoints().reduce(
-            (acc, vec) => vec.width > acc ? vec.width : acc,
-            0
-        );
-
-        // Finally we can take each shape and extrude it
-        const geometry = new ExtrudeGeometry(shape, {
-            depth: shapeWidth,
-            bevelEnabled: false
-        });
-
-        // Create a mesh and add it to the group
-        const mesh = new Mesh(geometry, material);
-        group.add(mesh);
-    });
-});
-
-
-// Meshes we got are all relative to themselves
-// meaning they have position set to (0, 0, 0)
-// which makes centering them in the group easy
+intersectionGroup.add(intersection);
+//intersectionGroup.remove(intersection);
 
 // Get group's size
-const box = new Box3().setFromObject(group);
+const box = new Box3().setFromObject(intersectionGroup);
 let vectorSize = new Vector3();
 box.getSize(vectorSize);
 
-// Revere group scaleFactor for correct children offsetting
-vectorSize.multiplyScalar(1 / scaleFactor);
-
 // Offset each dimension half its length to center group elements
-vectorSize.multiplyScalar(-0.5);
-group.children.forEach(item => {
-    item.position.copy(vectorSize);
+intersectionGroup.children.forEach(item => {
+    item.translateOnAxis(vectorSize, -1/2);
 });
 
 // Axes helper
-if (DEBUG) {
-    const axesHelper = new AxesHelper(500);
-    group.add(axesHelper);
-}
+// const axesHelper = new AxesHelper(1500);
+// intersectionGroup.add(axesHelper);
 
-// Finally we add svg group to the scene
-scene.add(group);
+// Add intersection result to the scene
+scene.add(intersectionGroup);
 
+camera.position.z = 5000;
 
-// const geometry = new BoxGeometry( 1, 1, 1 );
-// const material = new MeshBasicMaterial( { color: 0x00ff00, wireframe: true } );
-// const cube = new Mesh( geometry, material );
-// scene.add( cube );
-
-camera.position.z = 2000;
+const rotationStep = MathUtils.degToRad(-0.6);
 
 function animate() {
     requestAnimationFrame( animate );
 
-    group.rotation.y += 0.01;
+    intersectionGroup.rotation.y += rotationStep;
 
     renderer.render( scene, camera );
 }
@@ -124,4 +93,69 @@ if ( WebGL.isWebGLAvailable() ) {
 } else {
     const warning = WebGL.getWebGLErrorMessage();
     document.body.appendChild( warning );
+}
+
+
+
+/**
+ * Extrude shape mesh from SVG paths.
+ *
+ * Usage:
+ * MeshFromPath( (new SVGLoader).parse() )
+ *      .forEach( mesh => group.add(mesh) );
+ *
+ *
+ * @param svgPath {ShapePath|ShapePath[]}
+ * @param rotate {boolean}
+ * @returns {Mesh[]}
+ * @pure
+ */
+function MeshFromPath(svgPath, rotate = false) {
+    const material = new MeshNormalMaterial({ wireframe: false });
+    const rightAngle = MathUtils.degToRad(90);
+
+    if (Array.isArray(svgPath)) {
+        return svgPath.reduce(
+            (acc, p) => acc.concat(MeshFromPath(p, rotate)),
+            []
+        );
+    }
+
+    // Note: To correctly extract holes, use SVGLoader.createShapes(), not path.toShapes()
+    const shapes = SVGLoader.createShapes(svgPath);
+
+    let result = [];
+
+    // Each path has an array of shapes
+    shapes.forEach(shape => {
+        // Get width from shape []Vector2 coordinates
+        const shapeWidth = shape.getPoints().reduce(
+            (acc, vec) => vec.width > acc ? vec.width : acc,
+            0
+        );
+
+        // Take each shape and extrude it
+        const geometry = new ExtrudeGeometry(shape, {
+            depth: shapeWidth,
+            bevelEnabled: false
+        });
+
+        if (rotate) {
+            // Rotate geometry, not mesh
+            geometry.rotateY(rightAngle);
+        }
+
+        const mesh = new Mesh(geometry, material);
+
+        if (rotate) {
+            // Shift along z-axis after rotation, to align inside original boundaries
+            mesh.position.z = shapeWidth;
+        }
+
+        mesh.updateMatrix();
+
+        result.push(mesh)
+    });
+
+    return result;
 }
