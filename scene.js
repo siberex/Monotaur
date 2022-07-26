@@ -33,7 +33,7 @@ camera.position.z = 8000;
 const cameraOrtho = new OrthographicCamera(- 0.5 * frustumSize * aspect, 0.5 * frustumSize * aspect, frustumSize / 2, frustumSize / -2, 0.1, 10000);
 cameraOrtho.position.z = 5000;
 
-const renderer = new WebGLRenderer({ antialias: true, precision: 'highp' });
+const renderer = new WebGLRenderer({ antialias: true });
 renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
 document.body.appendChild( renderer.domElement );
 
@@ -44,7 +44,7 @@ window.addEventListener('resize', onWindowResize);
 // Load SVG, extrude surface from SVG paths and Binary Intersect resulting Meshes
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
-const material = new MeshNormalMaterial({wireframe: false});
+const material = new MeshNormalMaterial({ wireframe: true });
 
 /**
  * Parse all SVG text chunks.
@@ -114,7 +114,6 @@ function animate() {
         // console.log(group.rotation.y)
     }
 
-    renderer.setViewport( 0, 0, SCREEN_WIDTH , SCREEN_HEIGHT );
     // renderer.render( scene, camera );
     renderer.render( scene, cameraOrtho );
 }
