@@ -51,12 +51,35 @@ group.scale.y *= -1;
 const scaleFactor = 0.5;
 group.scale.multiplyScalar( scaleFactor );
 
-const material = new MeshNormalMaterial({ wireframe: false });
 
-// Loop through all the parsed paths
-svgDataLeft.paths.forEach(path => {
+/**
+ * Extrude shape mesh from SVG paths.
+ *
+ * Usage:
+ * MeshFromPath( (new SVGLoader).parse() )
+ *      .forEach( mesh => group.add(mesh) );
+ *
+ *
+ * @param svgPath {ShapePath|ShapePath[]}
+ * @param rotate {boolean}
+ * @returns {Mesh[]}
+ * @pure
+ */
+function MeshFromPath(svgPath, rotate = false) {
+    const material = new MeshNormalMaterial({ wireframe: false });
+    const rightAngle = MathUtils.degToRad(90);
+
+    if (Array.isArray(svgPath)) {
+        return svgPath.reduce(
+            (acc, p) => acc.concat(MeshFromPath(p, rotate)),
+            []
+        );
+    }
+
     // Note: To correctly extract holes, use SVGLoader.createShapes(), not path.toShapes()
-    const shapes = SVGLoader.createShapes(path);
+    const shapes = SVGLoader.createShapes(svgPath);
+
+    let result = [];
 
     // Each path has an array of shapes
     shapes.forEach(shape => {
@@ -66,54 +89,36 @@ svgDataLeft.paths.forEach(path => {
             0
         );
 
-        // Finally we can take each shape and extrude it
+        // Take each shape and extrude it
         const geometry = new ExtrudeGeometry(shape, {
             depth: shapeWidth,
             bevelEnabled: false
         });
 
-        // Create a mesh and add it to the group
-        const mesh = new Mesh(geometry, material);
-        // const mesh = new Mesh(geometry, new MeshNormalMaterial({ wireframe: true }));
-        mesh.updateMatrix();
-        group.add(mesh);
-    });
-});
+        if (rotate) {
+            // Rotate geometry, not mesh
+            geometry.rotateY(rightAngle);
+        }
 
-svgDataRight.paths.forEach(path => {
-    const shapes = SVGLoader.createShapes( path );
-
-    // Each path has an array of shapes
-    shapes.forEach(shape => {
-        // Get width from shape []Vector2 coordinates
-        // Use extractPoints().shape to skip holes
-        const shapeWidth = shape.extractPoints().shape.reduce(
-            (acc, vec) => vec.width > acc ? vec.width : acc,
-            0
-        );
-
-        // Finally we can take each shape and extrude it
-        const geometry = new ExtrudeGeometry(shape, {
-            depth: shapeWidth,
-            bevelEnabled: false
-        });
-
-        // Rotate geometry, non mesh
-        geometry.rotateY(MathUtils.degToRad(90));
-
-        // Create a mesh and add it to the group
         const mesh = new Mesh(geometry, material);
 
-        // X = red
-        // Y = green
-        // Z = blue
+        if (rotate) {
+            // Shift along z-axis after rotation, to align inside original boundaries
+            mesh.position.z = shapeWidth;
+        }
 
-        // Shift along z-axis after rotation
-        mesh.position.z = 660;
         mesh.updateMatrix();
-        group.add(mesh);
+
+        result.push(mesh)
     });
-});
+
+    return result;
+}
+
+
+MeshFromPath(svgDataLeft.paths).forEach(mesh => group.add(mesh));
+MeshFromPath(svgDataRight.paths, true).forEach(mesh => group.add(mesh));
+
 
 svgDataRight.paths.forEach(path => {
     const shapes = SVGLoader.createShapes( path );
@@ -159,7 +164,7 @@ intersectionGroup.add(intersection);
 });
 
 
-const intersection = CSG.intersect(group.children[0], group.children[1]);
+const intersection = CSG.intersect(...group.children);
 
 const intersectionGroup = new Group();
 intersectionGroup.scale.y *= -1;
@@ -171,22 +176,11 @@ const box = new Box3().setFromObject(intersectionGroup);
 let vectorSize = new Vector3();
 box.getSize(vectorSize);
 
-// Reverse group scaleFactor for correct children offsetting
-
-
 // Offset each dimension half its length to center group elements
 // vectorSize.multiplyScalar(-0.5);
-intersectionGroup.children.forEach((item, i) => {
-    // item.position.copy(vectorSize);
-    item.translateX(-vectorSize.x / 2);
-    item.translateY(-vectorSize.y / 2);
-    item.translateZ(-vectorSize.z / 2);
+intersectionGroup.children.forEach(item => {
+    item.translateOnAxis(vectorSize, -1/2);
 });
-
-// intersectionGroup.scale.multiplyScalar( scaleFactor );
-
-
-
 
 // Axes helper
 if (DEBUG) {
@@ -194,23 +188,17 @@ if (DEBUG) {
     intersectionGroup.add(axesHelper);
 }
 
-// Finally we add svg group to the scene
-// scene.add(group);
+// Add intersection result to the scene
 scene.add(intersectionGroup);
 
-
-// const geometry = new BoxGeometry( 1, 1, 1 );
-// const material = new MeshBasicMaterial( { color: 0x00ff00, wireframe: true } );
-// const cube = new Mesh( geometry, material );
-// scene.add( cube );
-
 camera.position.z = 2000;
+
+const rotationStep = MathUtils.degToRad(-0.6);
 
 function animate() {
     requestAnimationFrame( animate );
 
-    // group.rotation.y -= 0.01;
-    intersectionGroup.rotation.y -= 0.01;
+    intersectionGroup.rotation.y += rotationStep;
 
     renderer.render( scene, camera );
 }
