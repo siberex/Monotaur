@@ -152,17 +152,20 @@ if ( WebGL.isWebGLAvailable() ) {
  *
  *
  * @param svgPath {ShapePath|ShapePath[]}
- * @param rotate {boolean}
+ * @param centerOrigin {boolean} Center origin inside bounding box.
+ *              Useful to ease rotations. Eliminating the need of translation or position move after rotation.
+ * @param material {Material}
  * @returns {Mesh[]}
  * @pure
  */
-function MeshFromPath(svgPath, rotate = false) {
-    const material = new MeshNormalMaterial({ wireframe: false });
-    const rightAngle = MathUtils.degToRad(90);
+function MeshFromPath(svgPath, centerOrigin = false, material = null) {
+    if (material === null) {
+        material = new MeshNormalMaterial({wireframe: true});
+    }
 
     if (Array.isArray(svgPath)) {
         return svgPath.reduce(
-            (acc, p) => acc.concat(MeshFromPath(p, rotate)),
+            (acc, p) => acc.concat(MeshFromPath(p, centerOrigin, material)),
             []
         );
     }
@@ -186,17 +189,18 @@ function MeshFromPath(svgPath, rotate = false) {
             bevelEnabled: false
         });
 
-        if (rotate) {
-            // Rotate geometry, not mesh
-            geometry.rotateY(rightAngle);
+        if (centerOrigin) {
+            // Get bounding box
+            geometry.computeBoundingBox();
+            // const box = new Box3().setFromObject(geometry);
+            let vectorSize = new Vector3();
+            geometry.boundingBox.getSize(vectorSize);
+
+            // Offset each dimension half its length to center origin inside bounding box
+            geometry.translate(vectorSize.x/-2, vectorSize.y/-2, vectorSize.z/-2);
         }
 
         const mesh = new Mesh(geometry, material);
-
-        if (rotate) {
-            // Shift along z-axis after rotation, to align inside original boundaries
-            mesh.position.z = shapeWidth;
-        }
 
         mesh.updateMatrix();
 
