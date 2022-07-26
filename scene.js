@@ -90,7 +90,8 @@ const group = new Group();
 group.scale.y *= -1;
 
 // group.add(meshes[4]);
-group.add(IntersectionMeshes[1]);
+let modelIndex = 0;
+group.add(IntersectionMeshes[modelIndex]);
 
 // Axes helper
 // const axesHelper = new AxesHelper(1500);
@@ -100,8 +101,10 @@ group.add(IntersectionMeshes[1]);
 scene.add(group);
 
 
+let lastRotationPhase = 1;
 
-const rotationStep = MathUtils.degToRad(-0.3);
+
+const rotationStep = MathUtils.degToRad(-1);
 
 window.yarr = function() {
     group.rotateY(MathUtils.degToRad(-45));
@@ -114,14 +117,26 @@ function animate() {
 
     group.rotateY(rotationStep);
 
-    if (GetRotationQuadrant(group) === 1) {
-        material.wireframe = false;
-    } else {
-        material.wireframe = true;
+    let rotationPhase = GetRotationQuadrant(group);
+
+    // Switch models every 90° of rotation
+    if (lastRotationPhase !== rotationPhase) {
+        group.remove(IntersectionMeshes[modelIndex]);
+
+        // Reset rotation
+        group.rotation.y = 0;
+        lastRotationPhase = 1;
+
+        // Switch to the next model in list
+        modelIndex = (modelIndex + 1) % IntersectionMeshes.length;
+        group.add(IntersectionMeshes[modelIndex]);
+
+        // Additional fanciness
+        // material.wireframe = !material.wireframe;
     }
 
-    renderer.render( scene, camera );
-    // renderer.render( scene, cameraOrtho );
+    // renderer.render( scene, camera );
+    renderer.render( scene, cameraOrtho );
 }
 
 if ( WebGL.isWebGLAvailable() ) {
