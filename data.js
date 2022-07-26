@@ -1,3 +1,6 @@
+/**
+ * @type {string[]}
+ */
 export const svg = [
     'M0 1100V0h660v1100H0Zm220-220V220h220v660H220Z',
     'M220 220v660H0v220h660V880H440V0H0v220z',

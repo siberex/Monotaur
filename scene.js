@@ -19,7 +19,9 @@ import {svg} from './data.js';
 
 // Init three.js scene
 const scene = new Scene();
+// https://threejs.org/docs/#api/en/cameras/PerspectiveCamera
 const camera = new PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 0.1, 10000 );
+camera.position.z = 5000;
 
 const renderer = new WebGLRenderer({ antialias: true });
 renderer.setSize( window.innerWidth, window.innerHeight );
@@ -34,11 +36,40 @@ window.addEventListener('resize', function(e) {
 });
 
 
-// Load SVG and extrude surface from SVG paths
+// Load SVG, extrude surface from SVG paths and Binary Intersect resulting Meshes
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
-const svgDataLeft = loader.parse(svg[2]);
-const svgDataRight = loader.parse(svg[3]);
+
+/**
+ * Parse all SVG text chunks.
+ *
+ * @type {SVGResult[]}
+ */
+const svgData = svg.map(loader.parse);
+
+/**
+ * Produce Boolean Intersection for Meshes extruded from SVG.
+ *
+ * 1. Extrude Meshes for set of SVG paths.
+ * 2. Get first Mesh.
+ * 3. Extrude Meshes for next set of SVG paths and rotate along vertical axis 90 deg.
+ * 4. Get first Mesh.
+ * 5. Boolean Intersect produced meshes.
+ *
+ * @type {Mesh[]}
+ */
+const IntersectionMeshes = svgData.map((svgResult, i, items) => {
+    const nextIndex = (i + 1) % items.length;
+
+    const meshList = MeshFromPath(svgResult.paths);
+    const meshListNextRotated = MeshFromPath(svgData[nextIndex].paths, true);
+
+    if (!meshList[0] || !meshListNextRotated[0]) {
+        return false;
+    }
+
+    return CSG.intersect(meshList[0], meshListNextRotated[0]);
+}).filter(Boolean);
 
 // Group we'll use for all SVG paths
 const group = new Group();
@@ -46,16 +77,28 @@ const group = new Group();
 // it happens in the process of mapping from 2d to 3d coordinate system
 group.scale.y *= -1;
 
-MeshFromPath(svgDataLeft.paths).forEach(mesh => group.add(mesh));
-MeshFromPath(svgDataRight.paths, true).forEach(mesh => group.add(mesh));
+const meshes = MeshFromPath(loader.parse(svg[4]).paths);
+const mesh = meshes[0];
+
+// const meshRotated = MeshFromPath(loader.parse(svg[5]).paths)[0];
+// meshRotated.geometry.rotateY( MathUtils.degToRad(90) ); // note scaleY -1 !
+// meshRotated.translateZ(660);
+
+// group.add(mesh);
+group.add(IntersectionMeshes[1]);
+// group.add(meshRotated);
+
+
 
 // Boolean Intersection
-const intersection = CSG.intersect(group.children[0], group.children[1]);
+// const intersection = CSG.intersect(mesh, meshRotated);
 
-const intersectionGroup = new Group();
-intersectionGroup.scale.y *= -1;
+const intersectionGroup = group;
 
-intersectionGroup.add(intersection);
+// const intersectionGroup = new Group();
+// intersectionGroup.scale.y *= -1;
+
+//intersectionGroup.add(intersection);
 //intersectionGroup.remove(intersection);
 
 // Get group's size
@@ -65,19 +108,22 @@ box.getSize(vectorSize);
 
 // Offset each dimension half its length to center group elements
 intersectionGroup.children.forEach(item => {
-    item.translateOnAxis(vectorSize, -1/2);
+    item.translateY(vectorSize.y/-2)
+    // item.translateOnAxis(vectorSize, -1/2);
 });
 
 // Axes helper
-// const axesHelper = new AxesHelper(1500);
-// intersectionGroup.add(axesHelper);
+const axesHelper = new AxesHelper(1500);
+intersectionGroup.add(axesHelper);
 
 // Add intersection result to the scene
 scene.add(intersectionGroup);
 
-camera.position.z = 5000;
 
-const rotationStep = MathUtils.degToRad(-0.6);
+
+const rotationStep = MathUtils.degToRad(-0.3);
+
+intersectionGroup.rotation.y = MathUtils.degToRad(30);
 
 function animate() {
     requestAnimationFrame( animate );
