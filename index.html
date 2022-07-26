@@ -12,26 +12,25 @@
     }
   </style>
 
-<!--  <script type="module" src="./node_modules/three/build/three.module.js"></script>-->
-<!--  <script type="module" src="./node_modules/three-csg-ts/lib/esm/index.js"></script>-->
-<!--  <script type="module" src="./node_modules/three/examples/jsm/capabilities/WebGL.js"></script>-->
-<!--  <script type="module" src="./node_modules/three/examples/jsm/loaders/SVGLoader.js"></script>-->
-
-
-  <script async src="./node_modules/es-module-shims/dist/es-module-shims.js"></script>
   <!--
-  https://generator.jspm.io/#U2NhYGDhD80rySzJSU1hKMkoSk3VTS5O1y0pdjDWM9QzNICIORjoGZoY6aHx9FMrEnMLclKL9bOKc/WTEwsSkzJzMksygQLhqUnuPnpZxfg05OQnpqQWFesHh7n7gJlA9QDxTRbakQA
+    JSPM Generator Import Map
+    Edit URL: https://generator.jspm.io/#U2NhYGDhD80rySzJSU1hKMkoSk3VTS5O1y0pdjDWM9QzNICIORjoGZoY6aHx9FMrEnMLclKL9bOKc/WTEwsSkzJzMksygQLhqUnuPnpZxfg05OQnpqQWFesHh7n7gJlA9QDxTRbakQA
   -->
   <script type="importmap">
       {
         "imports": {
           "three": "./node_modules/three/build/three.module.js",
-          "three-csg-ts": "./node_modules/three-csg-ts/lib/esm/index.js",
+          "three-csg-ts": "./vendor/three-csg-ts/index.js",
           "three/examples/jsm/capabilities/WebGL.js": "./node_modules/three/examples/jsm/capabilities/WebGL.js",
           "three/examples/jsm/loaders/SVGLoader.js": "./node_modules/three/examples/jsm/loaders/SVGLoader.js"
-        }
+        },
+        "extension": "js"
       }
   </script>
+
+  <!-- ES Module Shims: Import maps polyfill for modules browsers without import maps support (all except Chrome 89+) -->
+  <script async src="./node_modules/es-module-shims/dist/es-module-shims.js" crossorigin="anonymous"></script>
+
   <script type="module" src="scene.js"></script>
 </head>
 <body>

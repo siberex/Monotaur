@@ -17,8 +17,6 @@ import { CSG } from 'three-csg-ts';
 
 import {svg} from './data.js';
 
-const DEBUG = true;
-
 // Init three.js scene
 const scene = new Scene();
 const camera = new PerspectiveCamera( 20, window.innerWidth / window.innerHeight, 0.1, 10000 );
@@ -39,8 +37,8 @@ window.addEventListener('resize', function(e) {
 // Load SVG and extrude surface from SVG paths
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
-const svgDataLeft = loader.parse(svg[1]);
-const svgDataRight = loader.parse(svg[2]);
+const svgDataLeft = loader.parse(svg[2]);
+const svgDataRight = loader.parse(svg[3]);
 
 // Group we'll use for all SVG paths
 const group = new Group();
@@ -52,12 +50,13 @@ MeshFromPath(svgDataLeft.paths).forEach(mesh => group.add(mesh));
 MeshFromPath(svgDataRight.paths, true).forEach(mesh => group.add(mesh));
 
 // Boolean Intersection
-const intersection = CSG.intersect(...group.children);
+const intersection = CSG.intersect(group.children[0], group.children[1]);
 
 const intersectionGroup = new Group();
 intersectionGroup.scale.y *= -1;
 
 intersectionGroup.add(intersection);
+//intersectionGroup.remove(intersection);
 
 // Get group's size
 const box = new Box3().setFromObject(intersectionGroup);
@@ -65,16 +64,13 @@ let vectorSize = new Vector3();
 box.getSize(vectorSize);
 
 // Offset each dimension half its length to center group elements
-// vectorSize.multiplyScalar(-0.5);
 intersectionGroup.children.forEach(item => {
     item.translateOnAxis(vectorSize, -1/2);
 });
 
 // Axes helper
-if (DEBUG) {
-    const axesHelper = new AxesHelper(1500);
-    intersectionGroup.add(axesHelper);
-}
+// const axesHelper = new AxesHelper(1500);
+// intersectionGroup.add(axesHelper);
 
 // Add intersection result to the scene
 scene.add(intersectionGroup);
