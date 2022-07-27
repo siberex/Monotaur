@@ -4,6 +4,7 @@ Exploration project to check Three.js features and capabilities.
 
 ❇️ [Codepen Demo](https://codepen.io/siberex/full/RwMLKjQ)
 
+[![Meshes rendered with wireframe](./_assets/img/wireframe.png)](https://codepen.io/siberex/full/RwMLKjQ)
 
 ## How it works
 
