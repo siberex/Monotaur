@@ -18,6 +18,15 @@ import { CSG } from 'three-csg-ts';
 import {shuffle} from './utils.js';
 
 
+// Animation rotation direction (false = CW, true = CCW)
+const ROTATE_CCW = false;
+
+// Rotation around Y-axis, which is directed from bottom to top
+const INTERSECTION_ANGLE = MathUtils.degToRad(90)  * (ROTATE_CCW ? -1 : 1);
+// Rotation speed: turn this amount with each animation  frame
+const ROTATION_STEP = MathUtils.degToRad(1) * (ROTATE_CCW ? 1 : -1);
+
+
 let SCREEN_WIDTH = window.innerWidth;
 let SCREEN_HEIGHT = window.innerHeight;
 let aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
@@ -84,7 +93,7 @@ const meshes = svgData.map(svgResult => {
     return meshList[0] ? meshList[0] : null;
 }).filter(Boolean);
 
-shuffle(meshes);
+// shuffle(meshes);
 
 /**
  * Produce Boolean Intersection for Meshes extruded from SVG.
@@ -99,7 +108,7 @@ const IntersectionMeshes = meshes.map((mesh, i, items) => {
     const nextIndex = (i + 1) % items.length;
 
     const meshRotated = items[nextIndex].clone();
-    meshRotated.rotateY( MathUtils.degToRad(-90) );
+    meshRotated.rotateY( INTERSECTION_ANGLE );
     meshRotated.updateMatrix();
 
     return CSG.intersect(mesh, meshRotated);
@@ -118,16 +127,15 @@ group.add(IntersectionMeshes[modelIndex]);
 scene.add(group);
 
 
-const activeQuadrant = 3;
+const activeQuadrant = ROTATE_CCW ? 3 : 0;
 let lastRotationPhase = activeQuadrant;
 const initialRotation = group.rotation.y;
 
-const rotationStep = MathUtils.degToRad(1);
 
 function animate() {
     requestAnimationFrame( animate );
 
-    group.rotateY(rotationStep);
+    group.rotateY(ROTATION_STEP);
 
     let rotationPhase = GetRotationQuadrant(group);
 
