@@ -2,21 +2,28 @@
 
 Exploration project to check Three.js features and capabilities.
 
-Goals:
+❇️ [Codepen Demo](https://codepen.io/siberex/full/RwMLKjQ)
 
-- [x] Extrude 3D surfaces from SVG shapes.
 
-    Example: Extrude I-beam surface from `I` shape.
+## How it works
 
-  - [x] Tricky part: cut-out shapes with subtracted geometry.
+1. Load SVG shapes (2D).
 
-    Example: Extrude ring surface from `O` shape.
+2. Extrude 3D surfaces from SVG shapes.
 
-- [x] Boolean Intersect two perpendicular surfaces extracted that way.
-  - https://github.com/sshirokov/ThreeBSP
-  - https://github.com/manthrax/THREE-CSGMesh
-  - https://github.com/Jiro-Digital/three-csg-ts
+    It is like making an I-beam surface from an `I` shape.
 
-- [x] Simple rotational animation.
+    Or like creating a ring surface from an `O` shape, which is technically speaking is called extruding annular cylinder from an annulus :-)
 
-- [ ] Advanced animation with changing shape in the middle.
+3. For each pair of extruded surfaces find their [Boolean Intersection](https://en.wikipedia.org/wiki/Constructive_solid_geometry).
+
+    One surface is rotated 90-degree against the other before computing intersection.
+
+    Surface intersections are computed using BSP (binary space partitioning), and thankfully there are existing solutions for that:
+
+    - https://github.com/Jiro-Digital/three-csg-ts
+    - https://github.com/sshirokov/ThreeBSP
+
+4. Resulting surface mesh is animated by rotating around vertical axis.
+
+5. After completing quarter-circle revolution 3D-mesh is switched to the next one to achieve smooth transition.
