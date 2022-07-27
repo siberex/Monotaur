@@ -250,8 +250,9 @@ function GetRotationQuadrant(obj3d) {
     obj3d.getWorldDirection(direction);
     let a = Math.atan2(direction.x, direction.z);
 
-    // Convert interval: [-π; π] → [0; 2π)
-    a = ( a + PI ) % ( 2 * PI );
+    // Convert interval: [-π; π] → a.b → b.a → [0; 2π)
+    // a = ( a + 2 * PI ) % ( 2 * PI ); // CW
+    a = Math.abs(( a - 2 * PI ) % ( 2 * PI ) ); // CCW
 
     if (0 <= a && a < PI / 2) {
         return 0;
