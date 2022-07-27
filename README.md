@@ -38,4 +38,4 @@ Exploration project to check Three.js features and capabilities.
 
 5. After completing quarter-circle revolution 3D-mesh is switched to the next one to achieve smooth transition.
 
-![Digital Animation](./_assets/animation.mp4)
+![Digital Animation](./_assets/img/animation.mp4)
