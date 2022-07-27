@@ -92,7 +92,7 @@ const IntersectionMeshes = meshes.map((mesh, i, items) => {
     const nextIndex = (i + 1) % items.length;
 
     const meshRotated = items[nextIndex].clone();
-    meshRotated.rotateY( MathUtils.degToRad(90) ); // note scaleY(-1) applied later to the group
+    meshRotated.rotateY( MathUtils.degToRad(90) );
     meshRotated.updateMatrix();
 
     return CSG.intersect(mesh, meshRotated);
@@ -100,13 +100,12 @@ const IntersectionMeshes = meshes.map((mesh, i, items) => {
 
 // Group we'll use for all SVG paths
 const group = new Group();
-// When importing SVGs paths are inverted on Y axis
-// it happens in the process of mapping from 2d to 3d coordinate system
-group.scale.y *= -1;
 
 // group.add(meshes[4]);
 let modelIndex = 0;
 group.add(IntersectionMeshes[modelIndex]);
+
+// group.add(new AxesHelper(1500));
 
 // Add intersection result to the scene
 scene.add(group);
@@ -198,6 +197,11 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
             depth: shapeWidth,
             bevelEnabled: false
         });
+
+        // Upon importing SVGs, paths are inverted on the Y axis.
+        // It happens in the process of coordinate system mapping from 2d to 3d
+        geometry.scale(1, -1, -1);
+        geometry.translate(0,1100,660);
 
         if (centerOrigin) {
             // Get bounding box
