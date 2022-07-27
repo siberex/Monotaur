@@ -15,6 +15,8 @@ import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 import { CSG } from 'three-csg-ts';
 
+import {shuffle} from './utils.js';
+
 
 let SCREEN_WIDTH = window.innerWidth;
 let SCREEN_HEIGHT = window.innerHeight;
@@ -81,6 +83,8 @@ const meshes = svgData.map(svgResult => {
     const meshList = MeshFromPath(svgResult.paths, true, material);
     return meshList[0] ? meshList[0] : null;
 }).filter(Boolean);
+
+shuffle(meshes);
 
 /**
  * Produce Boolean Intersection for Meshes extruded from SVG.
@@ -174,7 +178,8 @@ if ( WebGL.isWebGLAvailable() ) {
  *              Useful to ease rotations. Eliminating the need of translation or position move after rotation.
  * @param material {Material}
  * @returns {Mesh[]}
- * @pure
+ *
+ * @__PURE__
  */
 function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     if (material === null) {
