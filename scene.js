@@ -1,4 +1,5 @@
 import {
+    AxesHelper,
     ExtrudeGeometry,
     Group,
     MathUtils,
@@ -18,13 +19,15 @@ import { CSG } from 'three-csg-ts';
 let SCREEN_WIDTH = window.innerWidth;
 let SCREEN_HEIGHT = window.innerHeight;
 let aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
-const frustumSize = 1400;
+const frustumSize = 2000;
 
 // Init three.js scene
 const scene = new Scene();
 // https://threejs.org/docs/#api/en/cameras/PerspectiveCamera
-const camera = new PerspectiveCamera( 10, aspect, 0.1, 20000 );
+const camera = new PerspectiveCamera( 15, aspect, 0.1, 20000 );
 camera.position.z = 8000;
+// camera.rotateX(0.5)
+// camera.position.y = -1000;
 
 // https://threejs.org/docs/#api/en/cameras/OrthographicCamera
 const cameraOrtho = new OrthographicCamera(- 0.5 * frustumSize * aspect, 0.5 * frustumSize * aspect, frustumSize / 2, frustumSize / -2, 0.1, 10000);
@@ -92,7 +95,7 @@ const IntersectionMeshes = meshes.map((mesh, i, items) => {
     const nextIndex = (i + 1) % items.length;
 
     const meshRotated = items[nextIndex].clone();
-    meshRotated.rotateY( MathUtils.degToRad(90) );
+    meshRotated.rotateY( MathUtils.degToRad(-90) );
     meshRotated.updateMatrix();
 
     return CSG.intersect(mesh, meshRotated);
@@ -101,7 +104,7 @@ const IntersectionMeshes = meshes.map((mesh, i, items) => {
 // Group we'll use for all SVG paths
 const group = new Group();
 
-// group.add(meshes[4]);
+// group.add(meshes[3]);
 let modelIndex = 0;
 group.add(IntersectionMeshes[modelIndex]);
 
@@ -111,9 +114,11 @@ group.add(IntersectionMeshes[modelIndex]);
 scene.add(group);
 
 
-let lastRotationPhase = 1;
+const activeQuadrant = 3;
+let lastRotationPhase = activeQuadrant;
+const initialRotation = group.rotation.y;
 
-const rotationStep = MathUtils.degToRad(-1);
+const rotationStep = MathUtils.degToRad(1);
 
 function animate() {
     requestAnimationFrame( animate );
@@ -123,16 +128,20 @@ function animate() {
     let rotationPhase = GetRotationQuadrant(group);
 
     // Switch models every 90° of rotation
-    if (lastRotationPhase !== rotationPhase) {
+    if (rotationPhase !== lastRotationPhase) {
+        // console.log(rotationPhase);
+
         group.remove(IntersectionMeshes[modelIndex]);
 
         // Reset rotation
-        group.rotation.y = 0;
-        lastRotationPhase = 1;
+        group.rotation.y = initialRotation;
 
         // Switch to the next model in list
         modelIndex = (modelIndex + 1) % IntersectionMeshes.length;
         group.add(IntersectionMeshes[modelIndex]);
+
+        // lastRotationPhase = rotationPhase;
+        lastRotationPhase = activeQuadrant;
 
         // Additional fanciness
         // material.wireframe = !material.wireframe;
