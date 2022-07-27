@@ -3,6 +3,7 @@ import {
     Group,
     MathUtils,
     Mesh,
+    MeshBasicMaterial,
     MeshNormalMaterial,
     OrthographicCamera,
     PerspectiveCamera,
@@ -23,8 +24,8 @@ const frustumSize = 1400;
 // Init three.js scene
 const scene = new Scene();
 // https://threejs.org/docs/#api/en/cameras/PerspectiveCamera
-const camera = new PerspectiveCamera( 10, aspect, 0.1, 20000 );
-camera.position.z = 8000;
+const camera = new PerspectiveCamera( 50, aspect, 0.1, 20000 );
+camera.position.z = 2000;
 
 // https://threejs.org/docs/#api/en/cameras/OrthographicCamera
 const cameraOrtho = new OrthographicCamera(- 0.5 * frustumSize * aspect, 0.5 * frustumSize * aspect, frustumSize / 2, frustumSize / -2, 0.1, 10000);
@@ -41,7 +42,7 @@ window.addEventListener('resize', onWindowResize);
 // Load SVG, extrude surface from SVG paths and Binary Intersect resulting Meshes
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
-const material = new MeshNormalMaterial({ wireframe: false });
+const material = new MeshNormalMaterial();
 
 
 /**
@@ -75,7 +76,7 @@ const svgData = svg.map(loader.parse);
  * @type {Mesh[]}
  */
 const meshes = svgData.map(svgResult => {
-    const meshList = MeshFromPath(svgResult.paths, true, material);
+    const meshList = MeshFromPath(svgResult.paths, true);
     return meshList[0] ? meshList[0] : null;
 }).filter(Boolean);
 
@@ -95,7 +96,9 @@ const IntersectionMeshes = meshes.map((mesh, i, items) => {
     meshRotated.rotateY( MathUtils.degToRad(90) ); // note scaleY(-1) applied later to the group
     meshRotated.updateMatrix();
 
-    return CSG.intersect(mesh, meshRotated);
+    const result = CSG.intersect(mesh, meshRotated);
+    result.material = material;
+    return result;
 });
 
 // Group we'll use for all SVG paths
@@ -104,43 +107,33 @@ const group = new Group();
 // it happens in the process of mapping from 2d to 3d coordinate system
 group.scale.y *= -1;
 
-// group.add(meshes[4]);
-let modelIndex = 0;
+let modelIndex = 1;
 group.add(IntersectionMeshes[modelIndex]);
+
+const groupL = new Group();
+const groupR = new Group();
+groupL.add(meshes[1]);
+groupL.scale.y *= -1;
+groupR.add(meshes[2]);
+groupR.scale.y *= -1;
+meshes[2].material = new MeshBasicMaterial({wireframe: true, color: 0xff5555 });
+
 
 // Add intersection result to the scene
 scene.add(group);
+scene.add(groupL);
+scene.add(groupR);
 
-
-let lastRotationPhase = 1;
-
-const rotationStep = MathUtils.degToRad(-1);
+group.rotateY(MathUtils.degToRad(-45));
+groupL.rotateY(MathUtils.degToRad(-45));
+groupR.rotateY(MathUtils.degToRad(45));
 
 function animate() {
     requestAnimationFrame( animate );
 
-    group.rotateY(rotationStep);
 
-    let rotationPhase = GetRotationQuadrant(group);
-
-    // Switch models every 90° of rotation
-    if (lastRotationPhase !== rotationPhase) {
-        group.remove(IntersectionMeshes[modelIndex]);
-
-        // Reset rotation
-        group.rotation.y = 0;
-        lastRotationPhase = 1;
-
-        // Switch to the next model in list
-        modelIndex = (modelIndex + 1) % IntersectionMeshes.length;
-        group.add(IntersectionMeshes[modelIndex]);
-
-        // Additional fanciness
-        // material.wireframe = !material.wireframe;
-    }
-
-    // renderer.render( scene, camera );
-    renderer.render( scene, cameraOrtho );
+    renderer.render( scene, camera );
+    // renderer.render( scene, cameraOrtho );
 }
 
 if ( WebGL.isWebGLAvailable() ) {
@@ -170,7 +163,7 @@ if ( WebGL.isWebGLAvailable() ) {
  */
 function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     if (material === null) {
-        material = new MeshNormalMaterial({wireframe: true});
+        material = new MeshBasicMaterial({wireframe: true, color: 0x00ffff });
     }
 
     if (Array.isArray(svgPath)) {
