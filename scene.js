@@ -21,7 +21,7 @@ import {randomInt} from './utils.js';
 const ROTATE_CCW = false;
 
 // Rotation around Y-axis, which is directed from bottom to top
-const INTERSECTION_ANGLE = MathUtils.degToRad(90)  * (ROTATE_CCW ? -1 : 1);
+const INTERSECTION_ANGLE = MathUtils.degToRad(90) * (ROTATE_CCW ? -1 : 1);
 // Rotation speed: turn this amount with each animation  frame
 const ROTATION_STEP = MathUtils.degToRad(1) * (ROTATE_CCW ? 1 : -1);
 
@@ -33,15 +33,16 @@ const frustumSize = 2000;
 
 // Init three.js scene
 const scene = new Scene();
+
 // https://threejs.org/docs/#api/en/cameras/PerspectiveCamera
 const camera = new PerspectiveCamera( 15, aspect, 0.1, 20000 );
 camera.position.z = 8000;
-// camera.rotateX(0.5)
-// camera.position.y = -1000;
+// camera.position.y = 1000;
 
 // https://threejs.org/docs/#api/en/cameras/OrthographicCamera
 const cameraOrtho = new OrthographicCamera(- 0.5 * frustumSize * aspect, 0.5 * frustumSize * aspect, frustumSize / 2, frustumSize / -2, 0.1, 10000);
 cameraOrtho.position.z = 5000;
+cameraOrtho.position.y = 100;
 
 const renderer = new WebGLRenderer({ antialias: true });
 renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
@@ -54,6 +55,7 @@ window.addEventListener('resize', onWindowResize);
 // Load SVG, extrude surface from SVG paths and Binary Intersect resulting Meshes
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
+// const material = new MeshNormalMaterial({ wireframe: false, transparent: true, opacity: 0.7 });
 const material = new MeshNormalMaterial({ wireframe: false });
 
 
@@ -118,18 +120,18 @@ for (let i = 0; i < meshes.length; i++) {
         const meshIntersection = CSG.intersect(meshes[i], rotations[j])
         // Note: Geometry vertices count in the resulting mesh will be much larger
         //       than the sum of source geometries vertices.
-        console.log(
-            i, j,
-            meshes[i].geometry.attributes.position.count,
-            rotations[j].geometry.attributes.position.count,
-            meshIntersection.geometry.attributes.position.count
-        );
+        // console.log(
+        //     i, j,
+        //     meshes[i].geometry.attributes.position.count,
+        //     rotations[j].geometry.attributes.position.count,
+        //     meshIntersection.geometry.attributes.position.count
+        // );
         pairs.push(meshIntersection);
     }
     intersections.push(pairs);
 }
 
-// Group we'll use for all SVG paths
+// Group to put intersected digits to
 const group = new Group();
 
 // group.add(meshes[3]);
@@ -139,23 +141,28 @@ group.add(intersections[rotateFrom][rotateTo]);
 
 // group.add(new AxesHelper(1500));
 
-// Add intersection result to the scene
-scene.add(group);
+// Group to rotate
+const rotationGroup = new Group();
+rotationGroup.add(group);
+// rotationGroup.add(new AxesHelper(1500));
+
+// Add rotation group to the scene
+scene.add(rotationGroup);
 
 // group.rotateY( MathUtils.degToRad(45) * (ROTATE_CCW ? 1 : -1) );
 
-
 const activeQuadrant = ROTATE_CCW ? 3 : 0;
 let lastRotationPhase = activeQuadrant;
-const initialRotation = 0;
 
+camera.lookAt(group.position);
+cameraOrtho.lookAt(group.position);
 
 function animate() {
     requestAnimationFrame( animate );
 
-    group.rotateY(ROTATION_STEP);
+    rotationGroup.rotateY(ROTATION_STEP);
 
-    let rotationPhase = GetRotationQuadrant(group);
+    let rotationPhase = GetRotationQuadrant(rotationGroup);
 
     // Switch models every 90° of rotation
     if (rotationPhase !== lastRotationPhase) {
@@ -163,16 +170,18 @@ function animate() {
 
         group.remove(intersections[rotateFrom][rotateTo]);
 
-        // Reset rotation
-        group.rotation.y = initialRotation;
+        // Reset rotation by reverse-rotating newly-added model back to origin,
+        // because rotationGroup were rotated by 90 degrees.
+        group.rotateY(INTERSECTION_ANGLE);
 
         // Rotation to the next random digit
         rotateFrom = rotateTo
         rotateTo = randomInt(10);
         group.add(intersections[rotateFrom][rotateTo]);
 
-        // lastRotationPhase = rotationPhase;
-        lastRotationPhase = activeQuadrant;
+        console.log(`${rotateFrom} → ${rotateTo}`);
+
+        lastRotationPhase = rotationPhase;
 
         // Additional fanciness
         // material.wireframe = !material.wireframe;
