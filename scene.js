@@ -15,7 +15,7 @@ import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 import { CSG } from 'three-csg-ts';
 
-import {randomInt} from './utils.js';
+import {csv, randomInt} from './utils.js';
 
 // Animation rotation direction (false = CW, true = CCW)
 const ROTATE_CCW = false;
@@ -23,7 +23,7 @@ const ROTATE_CCW = false;
 // Rotation around Y-axis, which is directed from bottom to top
 const INTERSECTION_ANGLE = MathUtils.degToRad(90) * (ROTATE_CCW ? -1 : 1);
 // Rotation speed: turn this amount with each animation  frame
-const ROTATION_STEP = MathUtils.degToRad(1) * (ROTATE_CCW ? 1 : -1);
+const ROTATION_STEP = MathUtils.degToRad(1.5) * (ROTATE_CCW ? 1 : -1);
 
 
 let SCREEN_WIDTH = window.innerWidth;
@@ -107,6 +107,11 @@ const rotations = meshes.map(mesh => {
 });
 
 /**
+ * @type {number[][]}
+ */
+const vertexCounts = [];
+
+/**
  * Produce Boolean Intersection for all digit pairs:
  *      0: 0-0, 0-1, ... , 0-9,
  *      1: 1-0, 1-1, ... , 1-9, ...
@@ -120,23 +125,26 @@ for (let i = 0; i < meshes.length; i++) {
         const meshIntersection = CSG.intersect(meshes[i], rotations[j])
         // Note: Geometry vertices count in the resulting mesh will be much larger
         //       than the sum of source geometries vertices.
-        // console.log(
-        //     i, j,
-        //     meshes[i].geometry.attributes.position.count,
-        //     rotations[j].geometry.attributes.position.count,
-        //     meshIntersection.geometry.attributes.position.count
-        // );
+        vertexCounts.push([
+            i, j,
+            meshes[i].geometry.attributes.position.count,
+            rotations[j].geometry.attributes.position.count,
+            meshIntersection.geometry.attributes.position.count
+        ]);
         pairs.push(meshIntersection);
     }
     intersections.push(pairs);
 }
 
+// console.log( csv(vertexCounts) );
+
 // Group to put intersected digits to
 const group = new Group();
 
 // group.add(meshes[3]);
-let rotateFrom = 7;
-let rotateTo = randomInt(10);
+let rotateFrom = 0;
+// let rotateTo = randomInt(10);
+let rotateTo = 1;
 group.add(intersections[rotateFrom][rotateTo]);
 
 // group.add(new AxesHelper(1500));
@@ -157,6 +165,8 @@ let lastRotationPhase = activeQuadrant;
 camera.lookAt(group.position);
 cameraOrtho.lookAt(group.position);
 
+// setInterval(() => console.log('——————————'), 10000);
+
 function animate() {
     requestAnimationFrame( animate );
 
@@ -176,10 +186,11 @@ function animate() {
 
         // Rotation to the next random digit
         rotateFrom = rotateTo
-        rotateTo = randomInt(10);
+        // rotateTo = randomInt(10);
+        rotateTo = (rotateTo + 1) % 10;
         group.add(intersections[rotateFrom][rotateTo]);
 
-        console.log(`${rotateFrom} → ${rotateTo}`);
+        // console.log(`${rotateFrom} → ${rotateTo}`);
 
         lastRotationPhase = rotationPhase;
 

@@ -5,8 +5,8 @@
  * https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
  * https://bost.ocks.org/mike/shuffle/
  *
- * @param array []T
- * @returns []T
+ * @param array {T[]}
+ * @returns {T[]}
  */
 const shuffle = array => {
     // for i from n−1 down to 1 do:
@@ -27,4 +27,17 @@ const shuffle = array => {
  */
 const randomInt = n => (n * Math.random()) >>> 0;
 
-export {randomInt, shuffle};
+/**
+ * Produce CSV-formatted string from array
+ * Or tab-separated TSV:
+ * const tsv = a => csv(a, '\t');
+ *
+ * @param array {T[][]}
+ * @param separator {string} comma by default
+ * @returns {string}
+ */
+const csv = (array, separator=',') => array.reduce(
+    (csv, row) => `${csv}\n${row.join(separator)}`, ''
+);
+
+export {csv, randomInt, shuffle};
