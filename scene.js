@@ -104,35 +104,6 @@ const rotations = meshes.map(mesh => {
     return rotated;
 });
 
-
-/**
- * Produce Boolean Intersection for Meshes extruded from SVG.
- *
- * 1. Get extruded Mesh for digit.
- * 2. Get rotated Mesh for adjacent digit from the list.
- * 3. Boolean Intersect two meshes and return resulting mesh.
- *
- * @type {Mesh[]}
- */
-const IntersectionMeshes = meshes.map((mesh, i, items) => {
-    const nextIndex = (i + 1) % items.length;
-
-    const meshRotated = rotations[nextIndex];
-
-    // noinspection UnnecessaryLocalVariableJS
-    const meshIntersection = CSG.intersect(mesh, meshRotated);
-
-    // Note: Geometry vertices count in the resulting mesh will be much larger
-    //       than the sum of source geometries vertices.
-    // console.log(
-    //     mesh.geometry.attributes.position.count,
-    //     meshRotated.geometry.attributes.position.count,
-    //     meshIntersection.geometry.attributes.position.count
-    // );
-
-    return meshIntersection;
-});
-
 /**
  * Produce Boolean Intersection for all digit pairs:
  *      0: 0-0, 0-1, ... , 0-9,
@@ -145,6 +116,14 @@ for (let i = 0; i < meshes.length; i++) {
     let pairs = [];
     for (let j = 0; j < rotations.length; j++) {
         const meshIntersection = CSG.intersect(meshes[i], rotations[j])
+        // Note: Geometry vertices count in the resulting mesh will be much larger
+        //       than the sum of source geometries vertices.
+        console.log(
+            i, j,
+            meshes[i].geometry.attributes.position.count,
+            rotations[j].geometry.attributes.position.count,
+            meshIntersection.geometry.attributes.position.count
+        );
         pairs.push(meshIntersection);
     }
     intersections.push(pairs);
@@ -154,8 +133,9 @@ for (let i = 0; i < meshes.length; i++) {
 const group = new Group();
 
 // group.add(meshes[3]);
-let modelIndex = 0;
-group.add(IntersectionMeshes[modelIndex]);
+let rotateFrom = 7;
+let rotateTo = randomInt(10);
+group.add(intersections[rotateFrom][rotateTo]);
 
 // group.add(new AxesHelper(1500));
 
@@ -181,14 +161,15 @@ function animate() {
     if (rotationPhase !== lastRotationPhase) {
         // console.log(rotationPhase);
 
-        group.remove(IntersectionMeshes[modelIndex]);
+        group.remove(intersections[rotateFrom][rotateTo]);
 
         // Reset rotation
         group.rotation.y = initialRotation;
 
-        // Switch to the next model in list
-        modelIndex = (modelIndex + 1) % IntersectionMeshes.length;
-        group.add(IntersectionMeshes[modelIndex]);
+        // Rotation to the next random digit
+        rotateFrom = rotateTo
+        rotateTo = randomInt(10);
+        group.add(intersections[rotateFrom][rotateTo]);
 
         // lastRotationPhase = rotationPhase;
         lastRotationPhase = activeQuadrant;
@@ -197,8 +178,8 @@ function animate() {
         // material.wireframe = !material.wireframe;
     }
 
-    renderer.render( scene, camera );
-    // renderer.render( scene, cameraOrtho );
+    // renderer.render( scene, camera );
+    renderer.render( scene, cameraOrtho );
 }
 
 if ( WebGL.isWebGLAvailable() ) {
