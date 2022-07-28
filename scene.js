@@ -15,7 +15,7 @@ import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 import { CSG } from 'three-csg-ts';
 
-import {shuffle} from './utils.js';
+import {randomInt} from './utils.js';
 
 // Animation rotation direction (false = CW, true = CCW)
 const ROTATE_CCW = false;
@@ -92,23 +92,32 @@ const meshes = svgData.map(svgResult => {
     return meshList[0] ? meshList[0] : null;
 }).filter(Boolean);
 
-// shuffle(meshes);
+/**
+ * Get right-angle rotations along vertical axis for all meshes.
+ * Used for Boolean Intersections later.
+ *
+ * @type {Mesh[]}
+ */
+const rotations = meshes.map(mesh => {
+    const rotated = mesh.clone().rotateY( INTERSECTION_ANGLE );
+    rotated.updateMatrix();
+    return rotated;
+});
+
 
 /**
  * Produce Boolean Intersection for Meshes extruded from SVG.
  *
- * 1. Get extruded Mesh.
- * 2. Get adjacent Mesh from the list and rotate it 90 deg along its vertical axis.
- * 3. Boolean Intersect two meshes.
+ * 1. Get extruded Mesh for digit.
+ * 2. Get rotated Mesh for adjacent digit from the list.
+ * 3. Boolean Intersect two meshes and return resulting mesh.
  *
  * @type {Mesh[]}
  */
 const IntersectionMeshes = meshes.map((mesh, i, items) => {
     const nextIndex = (i + 1) % items.length;
 
-    const meshRotated = items[nextIndex].clone();
-    meshRotated.rotateY( INTERSECTION_ANGLE );
-    meshRotated.updateMatrix();
+    const meshRotated = rotations[nextIndex];
 
     // noinspection UnnecessaryLocalVariableJS
     const meshIntersection = CSG.intersect(mesh, meshRotated);
@@ -124,11 +133,28 @@ const IntersectionMeshes = meshes.map((mesh, i, items) => {
     return meshIntersection;
 });
 
+/**
+ * Produce Boolean Intersection for all digit pairs:
+ *      0: 0-0, 0-1, ... , 0-9,
+ *      1: 1-0, 1-1, ... , 1-9, ...
+ *
+ * @type {Mesh[][]}
+ */
+let intersections = [];
+for (let i = 0; i < meshes.length; i++) {
+    let pairs = [];
+    for (let j = 0; j < rotations.length; j++) {
+        const meshIntersection = CSG.intersect(meshes[i], rotations[j])
+        pairs.push(meshIntersection);
+    }
+    intersections.push(pairs);
+}
+
 // Group we'll use for all SVG paths
 const group = new Group();
 
 // group.add(meshes[3]);
-let modelIndex = 1;
+let modelIndex = 0;
 group.add(IntersectionMeshes[modelIndex]);
 
 // group.add(new AxesHelper(1500));
