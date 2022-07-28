@@ -17,7 +17,6 @@ import { CSG } from 'three-csg-ts';
 
 import {shuffle} from './utils.js';
 
-
 // Animation rotation direction (false = CW, true = CCW)
 const ROTATE_CCW = false;
 
@@ -111,14 +110,25 @@ const IntersectionMeshes = meshes.map((mesh, i, items) => {
     meshRotated.rotateY( INTERSECTION_ANGLE );
     meshRotated.updateMatrix();
 
-    return CSG.intersect(mesh, meshRotated);
+    // noinspection UnnecessaryLocalVariableJS
+    const meshIntersection = CSG.intersect(mesh, meshRotated);
+
+    // Note: Geometry vertices count in the resulting mesh will be much larger
+    //       than the sum of source geometries vertices.
+    // console.log(
+    //     mesh.geometry.attributes.position.count,
+    //     meshRotated.geometry.attributes.position.count,
+    //     meshIntersection.geometry.attributes.position.count
+    // );
+
+    return meshIntersection;
 });
 
 // Group we'll use for all SVG paths
 const group = new Group();
 
 // group.add(meshes[3]);
-let modelIndex = 0;
+let modelIndex = 1;
 group.add(IntersectionMeshes[modelIndex]);
 
 // group.add(new AxesHelper(1500));
@@ -126,10 +136,12 @@ group.add(IntersectionMeshes[modelIndex]);
 // Add intersection result to the scene
 scene.add(group);
 
+// group.rotateY( MathUtils.degToRad(45) * (ROTATE_CCW ? 1 : -1) );
+
 
 const activeQuadrant = ROTATE_CCW ? 3 : 0;
 let lastRotationPhase = activeQuadrant;
-const initialRotation = group.rotation.y;
+const initialRotation = 0;
 
 
 function animate() {
@@ -159,8 +171,8 @@ function animate() {
         // material.wireframe = !material.wireframe;
     }
 
-    // renderer.render( scene, camera );
-    renderer.render( scene, cameraOrtho );
+    renderer.render( scene, camera );
+    // renderer.render( scene, cameraOrtho );
 }
 
 if ( WebGL.isWebGLAvailable() ) {
@@ -249,10 +261,10 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
 /**
  * Get direction quadrant based on absolute rotation angle φ.
  *
- * 0: NE, φ ∈ [0; ½π)
- * 1: NW, φ ∈ [½π; π)
- * 2: SW, φ ∈ [π; ¾π)
- * 3: SE, φ ∈ [¾π; 2π)
+ * 0: NE, φ ∈ [0; 1/2π)
+ * 1: NW, φ ∈ [1/2π; π)
+ * 2: SW, φ ∈ [π; 3/2π)
+ * 3: SE, φ ∈ [3/2π; 2π)
  *
  * Note: cardinal points NE/NW/SW/SE are ambiguous “directions”,
  * used just for explainer here.
@@ -265,6 +277,8 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
 function GetRotationQuadrant(obj3d) {
     const direction = new Vector3();
     const PI = Math.PI;
+    const PI_DOUBLE = PI * 2;
+    const PI_HALF = PI / 2;
 
     // Short explainer on Quaternions and Euler angles
     // https://discourse.threejs.org/t/when-i-rotate-an-object-how-do-i-know-its-true-angle-of-rotation/4573/9
@@ -274,15 +288,15 @@ function GetRotationQuadrant(obj3d) {
 
     // Convert interval: [-π; π] → a.b → b.a → [0; 2π)
     // a = ( a + 2 * PI ) % ( 2 * PI ); // CW
-    a = Math.abs(( a - 2 * PI ) % ( 2 * PI ) ); // CCW
+    a = Math.abs(( a - PI_DOUBLE ) % PI_DOUBLE ); // CCW
 
-    if (0 <= a && a < PI / 2) {
+    if (0 <= a && a < PI_HALF) {
         return 0;
-    } else if (PI / 2 <= a && a < PI) {
+    } else if (PI_HALF <= a && a < PI) {
         return 1;
-    } else if (PI <= a && a < PI + PI / 2) {
+    } else if (PI <= a && a < 3 * PI_HALF) {
         return 2;
-    } else if (PI + PI / 2 <= a && a < 2 * PI) {
+    } else if (3 * PI_HALF <= a && a < PI_DOUBLE) {
         return 3;
     }
 
