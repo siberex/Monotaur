@@ -37,7 +37,7 @@ const randomInt = n => (n * Math.random()) >>> 0;
  * @returns {string}
  */
 const csv = (array, separator=',') => array.reduce(
-    (csv, row) => `${csv}\n${row.join(separator)}`, ''
+    (csv, row) => `${csv}${row.join(separator)}\n`, ''
 );
 
 export {csv, randomInt, shuffle};
