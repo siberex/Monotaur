@@ -40,4 +40,56 @@ const csv = (array, separator=',') => array.reduce(
     (csv, row) => `${csv}${row.join(separator)}\n`, ''
 );
 
-export {csv, randomInt, shuffle};
+/**
+ * Converts array of Curves to array of polygon coordinates [x, y] represented by them.
+ *
+ * Accepts LineCurve, CubicBezierCurve and QuadraticBezierCurve.
+ * Bézier curves are treated as lines like all control points are collinear.
+ * Other Curve types (ArcCurve, EllipseCurve, SplineCurve) are ignored.
+ *
+ * Usage:
+ * const SvgResult = (new SVGLoader()).parse('<svg>...</svg>');
+ * SvgResult.paths.forEach(path => path.subPaths.forEach(subpath => {
+ *     const coords = LineCurvesToPolygon(subpath.curves);
+ *     console.log(csv(coords,'\t\t'));
+ * }));
+ *
+ * @param curves {(LineCurve|CubicBezierCurve|QuadraticBezierCurve)[]}
+ * @returns {number[][]}
+ * @constructor
+ */
+const LineCurvesToPolygon = (curves) => curves.reduce((acc, curve) => {
+
+    let lineFrom, lineTo;
+    switch (curve.type) {
+        case 'LineCurve':
+            lineFrom = curve.v1.toArray();
+            lineTo = curve.v2.toArray();
+            break;
+        case 'CubicBezierCurve':
+            lineFrom = curve.v0.toArray();
+            lineTo = curve.v3.toArray();
+            break;
+        case 'QuadraticBezierCurve':
+            lineFrom = curve.v0.toArray();
+            lineTo = curve.v2.toArray();
+            break;
+        default:
+            return acc;
+    }
+
+    if (acc.length) {
+        const lastPoint = acc[acc.length-1];
+        if (lineFrom[0] !== lastPoint[0] || lineFrom[1] !== lastPoint[1]) {
+            acc.push(lineFrom);
+        }
+    } else {
+        acc.push(lineFrom);
+    }
+
+    acc.push(lineTo);
+    return acc;
+}, []);
+
+
+export {csv, randomInt, shuffle, LineCurvesToPolygon};
