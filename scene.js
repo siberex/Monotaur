@@ -63,7 +63,7 @@ const material = new MeshNormalMaterial({ wireframe: false });
  * @type {string[]}
  */
 const svg = [
-    'M0 1100V0h660v1100H0Zm220-220V220h220v660H220Z',
+    'M0 1100V0h660v1100zm220-220V220h220v660z',
     'M220 220v660H0v220h660V880H440V0H0v220z',
     'M220 660h440V0H0v220h440v220H0v660h660V880H220z',
     'M0 1100h660V0H0v220h440v220H220v220h220v220H0z',
