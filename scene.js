@@ -308,7 +308,6 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
  * @constructor
  */
 function GetRotationQuadrant(obj3d) {
-    const direction = new Vector3();
     const PI = Math.PI;
     const PI_DOUBLE = PI * 2;
     const PI_HALF = PI / 2;
@@ -316,24 +315,14 @@ function GetRotationQuadrant(obj3d) {
     // Short explainer on Quaternions and Euler angles
     // https://discourse.threejs.org/t/when-i-rotate-an-object-how-do-i-know-its-true-angle-of-rotation/4573/9
     // https://stackoverflow.com/a/34329880/1412330
-    obj3d.getWorldDirection(direction);
+    const direction = obj3d.getWorldDirection(new Vector3());
     let a = Math.atan2(direction.x, direction.z);
 
     // Convert interval: [-π; π] → a.b → b.a → [0; 2π)
     // a = ( a + 2 * PI ) % ( 2 * PI ); // CW
     a = Math.abs(( a - PI_DOUBLE ) % PI_DOUBLE ); // CCW
 
-    if (0 <= a && a < PI_HALF) {
-        return 0;
-    } else if (PI_HALF <= a && a < PI) {
-        return 1;
-    } else if (PI <= a && a < 3 * PI_HALF) {
-        return 2;
-    } else if (3 * PI_HALF <= a && a < PI_DOUBLE) {
-        return 3;
-    }
-
-    return 0;
+    return (a / PI_HALF) >>> 0;
 }
 
 
