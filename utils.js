@@ -21,7 +21,11 @@ const shuffle = array => {
 
 /**
  * Returns random int up to n.
- * Constraint: 0 < n < 2^32.
+ * Sanity constraint: 2 <= n <= 2^32 - 1.
+ *
+ * randomInt(-2) will produce random item from the set {0, 2^32-1}
+ * randomInt(-3) will produce random item from the set {0, 2^32-1, 2^32-2}
+ * ...
  *
  * @param n {number}
  * @returns {number} random int from the interval [0; n-1]
