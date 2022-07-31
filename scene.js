@@ -247,10 +247,17 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
 
     // Each path has an array of shapes
     shapes.forEach(shape => {
-        // Get width from shape []Vector2 coordinates
-        const shapeWidth = shape.getPoints().reduce(
-            (acc, vec) => vec.width > acc ? vec.width : acc,
-            0
+        // Get shape width and height from its []Vector2 coordinates
+        // Note: width and height will include translation length from [0, 0] for translated shapes
+        // Example: <path d="M55,990L110,1100L0,1100Z"/>
+        //          Dimensions will be [110, 1100] and not [110, 110]
+        const [shapeWidth, shapeHeight] = shape.getPoints().reduce(
+            (acc, vec) => {
+                if (vec.width > acc[0]) acc[0] = vec.width;
+                if (vec.height > acc[1]) acc[1] = vec.height;
+                return acc;
+            },
+            [0, 0]
         );
 
         // Take each shape and extrude it
@@ -262,7 +269,7 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
         // Upon importing SVGs, paths are inverted on the Y axis.
         // It happens in the process of coordinate system mapping from 2d to 3d
         geometry.scale(1, -1, -1);
-        geometry.translate(0,1100,660);
+        geometry.translate(0, shapeHeight, shapeWidth);
 
         if (centerOrigin) {
             // Get bounding box
