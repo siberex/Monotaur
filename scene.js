@@ -1,4 +1,5 @@
 import {
+    AxesHelper,
     ExtrudeGeometry,
     Group,
     MathUtils,
@@ -14,21 +15,34 @@ import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 import { CSG } from 'three-csg-ts';
 
+import {csv, randomInt} from './utils.js';
+
+// Animation rotation direction (false = CW, true = CCW)
+const ROTATE_CCW = false;
+
+// Rotation around Y-axis, which is directed from bottom to top
+const INTERSECTION_ANGLE = MathUtils.degToRad(90) * (ROTATE_CCW ? -1 : 1);
+// Rotation speed: turn this amount with each animation  frame
+const ROTATION_STEP = MathUtils.degToRad(1.5) * (ROTATE_CCW ? 1 : -1);
+
 
 let SCREEN_WIDTH = window.innerWidth;
 let SCREEN_HEIGHT = window.innerHeight;
 let aspect = SCREEN_WIDTH / SCREEN_HEIGHT;
-const frustumSize = 1400;
+const frustumSize = 2000;
 
 // Init three.js scene
 const scene = new Scene();
+
 // https://threejs.org/docs/#api/en/cameras/PerspectiveCamera
-const camera = new PerspectiveCamera( 10, aspect, 0.1, 20000 );
+const camera = new PerspectiveCamera( 15, aspect, 0.1, 20000 );
 camera.position.z = 8000;
+// camera.position.y = 1000;
 
 // https://threejs.org/docs/#api/en/cameras/OrthographicCamera
 const cameraOrtho = new OrthographicCamera(- 0.5 * frustumSize * aspect, 0.5 * frustumSize * aspect, frustumSize / 2, frustumSize / -2, 0.1, 10000);
 cameraOrtho.position.z = 5000;
+cameraOrtho.position.y = 100;
 
 const renderer = new WebGLRenderer({ antialias: true });
 renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
@@ -41,6 +55,7 @@ window.addEventListener('resize', onWindowResize);
 // Load SVG, extrude surface from SVG paths and Binary Intersect resulting Meshes
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
+// const material = new MeshNormalMaterial({ wireframe: false, transparent: true, opacity: 0.7 });
 const material = new MeshNormalMaterial({ wireframe: false });
 
 
@@ -48,7 +63,7 @@ const material = new MeshNormalMaterial({ wireframe: false });
  * @type {string[]}
  */
 const svg = [
-    'M0 1100V0h660v1100H0Zm220-220V220h220v660H220Z',
+    'M0 1100V0h660v1100zm220-220V220h220v660z',
     'M220 220v660H0v220h660V880H440V0H0v220z',
     'M220 660h440V0H0v220h440v220H0v660h660V880H220z',
     'M0 1100h660V0H0v220h440v220H220v220h220v220H0z',
@@ -80,60 +95,104 @@ const meshes = svgData.map(svgResult => {
 }).filter(Boolean);
 
 /**
- * Produce Boolean Intersection for Meshes extruded from SVG.
- *
- * 1. Get extruded Mesh.
- * 2. Get adjacent Mesh from the list and rotate it 90 deg along its vertical axis.
- * 3. Boolean Intersect two meshes.
+ * Get right-angle rotations along vertical axis for all meshes.
+ * Used for Boolean Intersections later.
  *
  * @type {Mesh[]}
  */
-const IntersectionMeshes = meshes.map((mesh, i, items) => {
-    const nextIndex = (i + 1) % items.length;
-
-    const meshRotated = items[nextIndex].clone();
-    meshRotated.rotateY( MathUtils.degToRad(90) ); // note scaleY(-1) applied later to the group
-    meshRotated.updateMatrix();
-
-    return CSG.intersect(mesh, meshRotated);
+const rotations = meshes.map(mesh => {
+    const rotated = mesh.clone().rotateY( INTERSECTION_ANGLE );
+    rotated.updateMatrix();
+    return rotated;
 });
 
-// Group we'll use for all SVG paths
+/**
+ * @type {number[][]}
+ */
+const vertexCounts = [];
+
+/**
+ * Produce Boolean Intersection for all digit pairs:
+ *      0: 0-0, 0-1, ... , 0-9,
+ *      1: 1-0, 1-1, ... , 1-9, ...
+ *
+ * @type {Mesh[][]}
+ */
+let intersections = [];
+for (let i = 0; i < meshes.length; i++) {
+    let pairs = [];
+    for (let j = 0; j < rotations.length; j++) {
+        const meshIntersection = CSG.intersect(meshes[i], rotations[j]);
+        // Note: Geometry vertices count in the resulting mesh will be much larger
+        //       than the sum of source geometries vertices.
+        vertexCounts.push([
+            i, j,
+            meshes[i].geometry.attributes.position.count / 3,
+            rotations[j].geometry.attributes.position.count / 3,
+            meshIntersection.geometry.attributes.position.count / 3
+        ]);
+        pairs.push(meshIntersection);
+    }
+    intersections.push(pairs);
+}
+
+// console.log( csv(vertexCounts) );
+
+// Group to put intersected digits to
 const group = new Group();
-// When importing SVGs paths are inverted on Y axis
-// it happens in the process of mapping from 2d to 3d coordinate system
-group.scale.y *= -1;
 
-// group.add(meshes[4]);
-let modelIndex = 0;
-group.add(IntersectionMeshes[modelIndex]);
+// group.add(meshes[3]);
+let rotateFrom = 0;
+let rotateTo = randomInt(10);
+// let rotateTo = 1;
+group.add(intersections[rotateFrom][rotateTo]);
 
-// Add intersection result to the scene
-scene.add(group);
+// group.add(new AxesHelper(1500));
 
+// Group to rotate
+const rotationGroup = new Group();
+rotationGroup.add(group);
+// rotationGroup.add(new AxesHelper(1500));
 
-let lastRotationPhase = 1;
+// Add rotation group to the scene
+scene.add(rotationGroup);
 
-const rotationStep = MathUtils.degToRad(-1);
+// group.rotateY( MathUtils.degToRad(45) * (ROTATE_CCW ? 1 : -1) );
+
+const activeQuadrant = ROTATE_CCW ? 3 : 0;
+let lastRotationPhase = activeQuadrant;
+
+camera.lookAt(rotationGroup.position);
+cameraOrtho.lookAt(rotationGroup.position);
+
+// setInterval(() => console.log('——————————'), 10000);
 
 function animate() {
     requestAnimationFrame( animate );
 
-    group.rotateY(rotationStep);
+    rotationGroup.rotateY(ROTATION_STEP);
 
-    let rotationPhase = GetRotationQuadrant(group);
+    let rotationPhase = GetRotationQuadrant(rotationGroup);
 
     // Switch models every 90° of rotation
-    if (lastRotationPhase !== rotationPhase) {
-        group.remove(IntersectionMeshes[modelIndex]);
+    if (rotationPhase !== lastRotationPhase) {
+        // console.log(rotationPhase);
 
-        // Reset rotation
-        group.rotation.y = 0;
-        lastRotationPhase = 1;
+        group.remove(intersections[rotateFrom][rotateTo]);
 
-        // Switch to the next model in list
-        modelIndex = (modelIndex + 1) % IntersectionMeshes.length;
-        group.add(IntersectionMeshes[modelIndex]);
+        // Reset rotation by reverse-rotating newly-added model back to origin,
+        // because rotationGroup were rotated by 90 degrees.
+        group.rotateY(INTERSECTION_ANGLE);
+
+        // Rotation to the next random digit
+        rotateFrom = rotateTo
+        rotateTo = randomInt(10);
+        // rotateTo = (rotateTo + 1) % 10;
+        group.add(intersections[rotateFrom][rotateTo]);
+
+        // console.log(`${rotateFrom} → ${rotateTo}`);
+
+        lastRotationPhase = rotationPhase;
 
         // Additional fanciness
         // material.wireframe = !material.wireframe;
@@ -166,7 +225,8 @@ if ( WebGL.isWebGLAvailable() ) {
  *              Useful to ease rotations. Eliminating the need of translation or position move after rotation.
  * @param material {Material}
  * @returns {Mesh[]}
- * @pure
+ *
+ * @__PURE__
  */
 function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     if (material === null) {
@@ -187,10 +247,17 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
 
     // Each path has an array of shapes
     shapes.forEach(shape => {
-        // Get width from shape []Vector2 coordinates
-        const shapeWidth = shape.getPoints().reduce(
-            (acc, vec) => vec.width > acc ? vec.width : acc,
-            0
+        // Get shape width and height from its []Vector2 coordinates
+        // Note: width and height will include translation length from [0, 0] for translated shapes
+        // Example: <path d="M55,990L110,1100L0,1100Z"/>
+        //          Dimensions will be [110, 1100] and not [110, 110]
+        const [shapeWidth, shapeHeight] = shape.getPoints().reduce(
+            (acc, vec) => {
+                if (vec.width > acc[0]) acc[0] = vec.width;
+                if (vec.height > acc[1]) acc[1] = vec.height;
+                return acc;
+            },
+            [0, 0]
         );
 
         // Take each shape and extrude it
@@ -199,14 +266,18 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
             bevelEnabled: false
         });
 
+        // Upon importing SVGs, paths are inverted on the Y axis.
+        // It happens in the process of coordinate system mapping from 2d to 3d
+        geometry.scale(1, -1, -1);
+        geometry.translate(0, shapeHeight, shapeWidth);
+
         if (centerOrigin) {
-            // Get bounding box
-            geometry.computeBoundingBox();
-            let vectorSize = new Vector3();
-            geometry.boundingBox.getSize(vectorSize);
+            // Get actual bounding box:
+            // geometry.computeBoundingBox();
+            // const bbox = geometry.boundingBox.getSize(new Vector3());
 
             // Offset each dimension half its length to center origin inside bounding box
-            geometry.translate(vectorSize.x/-2, vectorSize.y/-2, vectorSize.z/-2);
+            geometry.translate(shapeWidth/-2, shapeHeight/-2, shapeWidth/-2);
         }
 
         const mesh = new Mesh(geometry, material);
@@ -223,10 +294,10 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
 /**
  * Get direction quadrant based on absolute rotation angle φ.
  *
- * 0: NE, φ ∈ [0; ½π)
- * 1: NW, φ ∈ [½π; π)
- * 2: SW, φ ∈ [π; ¾π)
- * 3: SE, φ ∈ [¾π; 2π)
+ * 0: NE, φ ∈ [0; 1/2π)
+ * 1: NW, φ ∈ [1/2π; π)
+ * 2: SW, φ ∈ [π; 3/2π)
+ * 3: SE, φ ∈ [3/2π; 2π)
  *
  * Note: cardinal points NE/NW/SW/SE are ambiguous “directions”,
  * used just for explainer here.
@@ -237,29 +308,27 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
  * @constructor
  */
 function GetRotationQuadrant(obj3d) {
-    const direction = new Vector3();
-    const PI = Math.PI;
-
     // Short explainer on Quaternions and Euler angles
     // https://discourse.threejs.org/t/when-i-rotate-an-object-how-do-i-know-its-true-angle-of-rotation/4573/9
     // https://stackoverflow.com/a/34329880/1412330
-    obj3d.getWorldDirection(direction);
-    let a = Math.atan2(direction.x, direction.z);
+    const direction = obj3d.getWorldDirection(new Vector3());
 
+    // let a = Math.atan2(-direction.x, direction.z);
     // Convert interval: [-π; π] → [0; 2π)
-    a = ( a + PI ) % ( 2 * PI );
+    // a = ( a + 2 * Math.PI ) % ( 2 * Math.PI );
+    // return (a / (Math.PI / 2)) >>> 0;
 
-    if (0 <= a && a < PI / 2) {
-        return 0;
-    } else if (PI / 2 <= a && a < PI) {
-        return 1;
-    } else if (PI <= a && a < PI + PI / 2) {
-        return 2;
-    } else if (PI + PI / 2 <= a && a < 2 * PI) {
-        return 3;
+    // Important to properly map 3D-rotation around Y-axis to 2D coordinates
+    // noinspection JSSuspiciousNameCombination
+    const x = direction.z;
+    // noinspection JSSuspiciousNameCombination
+    const y = -direction.x;
+
+    if (y >= 0) {
+        return x >= 0 ? 0 : 1;
+    } else {
+        return x >= 0 ? 3 : 2;
     }
-
-    return 0;
 }
 
 
