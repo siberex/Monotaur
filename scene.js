@@ -122,14 +122,14 @@ let intersections = [];
 for (let i = 0; i < meshes.length; i++) {
     let pairs = [];
     for (let j = 0; j < rotations.length; j++) {
-        const meshIntersection = CSG.intersect(meshes[i], rotations[j])
+        const meshIntersection = CSG.intersect(meshes[i], rotations[j]);
         // Note: Geometry vertices count in the resulting mesh will be much larger
         //       than the sum of source geometries vertices.
         vertexCounts.push([
             i, j,
-            meshes[i].geometry.attributes.position.count,
-            rotations[j].geometry.attributes.position.count,
-            meshIntersection.geometry.attributes.position.count
+            meshes[i].geometry.attributes.position.count / 3,
+            rotations[j].geometry.attributes.position.count / 3,
+            meshIntersection.geometry.attributes.position.count / 3
         ]);
         pairs.push(meshIntersection);
     }
@@ -143,8 +143,8 @@ const group = new Group();
 
 // group.add(meshes[3]);
 let rotateFrom = 0;
-// let rotateTo = randomInt(10);
-let rotateTo = 1;
+let rotateTo = randomInt(10);
+// let rotateTo = 1;
 group.add(intersections[rotateFrom][rotateTo]);
 
 // group.add(new AxesHelper(1500));
@@ -162,8 +162,8 @@ scene.add(rotationGroup);
 const activeQuadrant = ROTATE_CCW ? 3 : 0;
 let lastRotationPhase = activeQuadrant;
 
-camera.lookAt(group.position);
-cameraOrtho.lookAt(group.position);
+camera.lookAt(rotationGroup.position);
+cameraOrtho.lookAt(rotationGroup.position);
 
 // setInterval(() => console.log('——————————'), 10000);
 
@@ -186,8 +186,8 @@ function animate() {
 
         // Rotation to the next random digit
         rotateFrom = rotateTo
-        // rotateTo = randomInt(10);
-        rotateTo = (rotateTo + 1) % 10;
+        rotateTo = randomInt(10);
+        // rotateTo = (rotateTo + 1) % 10;
         group.add(intersections[rotateFrom][rotateTo]);
 
         // console.log(`${rotateFrom} → ${rotateTo}`);

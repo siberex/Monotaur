@@ -21,6 +21,7 @@ const shuffle = array => {
 
 /**
  * Returns random int up to n.
+ * Constraint: 0 < n < 2^32.
  *
  * @param n {number}
  * @returns {number} random int from the interval [0; n-1]
@@ -56,7 +57,6 @@ const csv = (array, separator=',') => array.reduce(
  *
  * @param curves {(LineCurve|CubicBezierCurve|QuadraticBezierCurve)[]}
  * @returns {number[][]}
- * @constructor
  */
 const LineCurvesToPolygon = (curves) => curves.reduce((acc, curve) => {
 
