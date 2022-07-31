@@ -272,13 +272,12 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
         geometry.translate(0, shapeHeight, shapeWidth);
 
         if (centerOrigin) {
-            // Get bounding box
-            geometry.computeBoundingBox();
-            let vectorSize = new Vector3();
-            geometry.boundingBox.getSize(vectorSize);
+            // Get actual bounding box:
+            // geometry.computeBoundingBox();
+            // const bbox = geometry.boundingBox.getSize(new Vector3());
 
             // Offset each dimension half its length to center origin inside bounding box
-            geometry.translate(vectorSize.x/-2, vectorSize.y/-2, vectorSize.z/-2);
+            geometry.translate(shapeWidth/-2, shapeHeight/-2, shapeWidth/-2);
         }
 
         const mesh = new Mesh(geometry, material);
