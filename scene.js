@@ -161,6 +161,7 @@ scene.add(rotationGroup);
 
 const activeQuadrant = ROTATE_CCW ? 3 : 0;
 let lastRotationPhase = activeQuadrant;
+let countPhaseFrames = 0;
 
 camera.lookAt(rotationGroup.position);
 cameraOrtho.lookAt(rotationGroup.position);
@@ -171,18 +172,20 @@ function animate() {
     requestAnimationFrame( animate );
 
     rotationGroup.rotateY(ROTATION_STEP);
+    countPhaseFrames++;
 
     let rotationPhase = GetRotationQuadrant(rotationGroup);
 
     // Switch models every 90° of rotation
     if (rotationPhase !== lastRotationPhase) {
         // console.log(rotationPhase);
+        // console.log(countPhaseFrames);
 
         group.remove(intersections[rotateFrom][rotateTo]);
 
         // Reset rotation by reverse-rotating newly-added model back to origin,
         // because rotationGroup were rotated by 90 degrees.
-        group.rotateY(INTERSECTION_ANGLE);
+        group.rotateY(-countPhaseFrames * ROTATION_STEP);
 
         // Rotation to the next random digit
         rotateFrom = rotateTo
@@ -193,6 +196,7 @@ function animate() {
         // console.log(`${rotateFrom} → ${rotateTo}`);
 
         lastRotationPhase = rotationPhase;
+        countPhaseFrames = 0;
 
         // Additional fanciness
         // material.wireframe = !material.wireframe;
