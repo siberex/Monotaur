@@ -5,8 +5,11 @@ import {
     MathUtils,
     Mesh,
     MeshNormalMaterial,
+    MeshStandardMaterial,
     OrthographicCamera,
     PerspectiveCamera,
+    Plane,
+    PointLight,
     Scene,
     Vector3,
     WebGLRenderer
@@ -37,15 +40,18 @@ const scene = new Scene();
 // https://threejs.org/docs/#api/en/cameras/PerspectiveCamera
 const camera = new PerspectiveCamera( 15, aspect, 0.1, 20000 );
 camera.position.z = 8000;
-// camera.position.y = 1000;
+camera.position.y = 1000;
 
 // https://threejs.org/docs/#api/en/cameras/OrthographicCamera
 const cameraOrtho = new OrthographicCamera(- 0.5 * frustumSize * aspect, 0.5 * frustumSize * aspect, frustumSize / 2, frustumSize / -2, 0.1, 10000);
 cameraOrtho.position.z = 5000;
-cameraOrtho.position.y = 100;
+// cameraOrtho.position.y = 100;
 
-const renderer = new WebGLRenderer({ antialias: true });
+//const renderer = new WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: "low-power" });
+const renderer = new WebGLRenderer({ antialias: true, preserveDrawingBuffer: false, powerPreference: "high-performance" });
+// renderer.localClippingEnabled = true;
 renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
+// renderer.autoClear = false;
 document.body.appendChild( renderer.domElement );
 
 // Resize and update camera
@@ -55,8 +61,33 @@ window.addEventListener('resize', onWindowResize);
 // Load SVG, extrude surface from SVG paths and Binary Intersect resulting Meshes
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
+const plane = new Plane( new Vector3( 1, 0, 1 ), 200 );
+// plane.normal.set(0, 0, -1);
+
 // const material = new MeshNormalMaterial({ wireframe: false, transparent: true, opacity: 0.7 });
-const material = new MeshNormalMaterial({ wireframe: false });
+// const material = new MeshNormalMaterial({ wireframe: false });
+// const material = new MeshNormalMaterial({ wireframe: false, clippingPlanes: [plane], });
+const material = new MeshStandardMaterial({ 
+    // flatShading: true,
+    // wireframe: true,
+    // clippingPlanes: [plane],
+    roughness: 0.3,
+    metalness: 0.5,
+    // color: 0x049ef4,
+});
+
+
+
+const light = new PointLight(0xffff99, 0.5);
+light.position.set(0, 0, 0);
+scene.add(light);
+
+const light2 = new PointLight(0xffffff, 1.2);
+light2.position.set(600 * (ROTATE_CCW ? -1 : 1), 0, 2000);
+scene.add(light2);
+
+// scene.add(new AxesHelper(1500));
+
 
 
 /**
@@ -143,8 +174,8 @@ const group = new Group();
 
 // group.add(meshes[3]);
 let rotateFrom = 0;
-let rotateTo = randomInt(10);
-// let rotateTo = 1;
+// let rotateTo = randomInt(10);
+let rotateTo = 1;
 group.add(intersections[rotateFrom][rotateTo]);
 
 // group.add(new AxesHelper(1500));
@@ -188,9 +219,9 @@ function animate() {
         group.rotateY(-countPhaseFrames * ROTATION_STEP);
 
         // Rotation to the next random digit
-        rotateFrom = rotateTo
-        rotateTo = randomInt(10);
-        // rotateTo = (rotateTo + 1) % 10;
+        rotateFrom = rotateTo;
+        // rotateTo = randomInt(10);
+        rotateTo = (rotateTo + 1) % 10;
         group.add(intersections[rotateFrom][rotateTo]);
 
         // console.log(`${rotateFrom} → ${rotateTo}`);
