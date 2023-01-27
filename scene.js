@@ -13,7 +13,7 @@ import {
 } from 'three';
 import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
-import { CSG } from 'three-csg-ts';
+import { INTERSECTION, Brush, Evaluator } from 'three-bvh-csg';
 
 import {csv, randomInt} from './utils.js';
 
@@ -119,10 +119,16 @@ const vertexCounts = [];
  * @type {Mesh[][]}
  */
 let intersections = [];
+const csgEvaluator = new Evaluator();
 for (let i = 0; i < meshes.length; i++) {
     let pairs = [];
     for (let j = 0; j < rotations.length; j++) {
-        const meshIntersection = CSG.intersect(meshes[i], rotations[j]);
+
+        const brush1 = new Brush( meshes[i] );
+        const brush2 = new Brush( rotations[j] );
+
+        const meshIntersection = csgEvaluator.evaluate( brush1, brush2, INTERSECTION );
+
         // Note: Geometry vertices count in the resulting mesh will be much larger
         //       than the sum of source geometries vertices.
         vertexCounts.push([
