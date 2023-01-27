@@ -20,8 +20,8 @@
   "homepage": "https://github.com/siberex/Monotaur#readme",
   "dependencies": {
     "es-module-shims": "^1.5.9",
-    "three": "^0.142.0",
-    "three-csg-ts": "^3.1.10"
+    "three": "^0.141.0",
+    "three-bvh-csg": "^0.0.4"
   },
   "devDependencies": {
     "http-server": "^14.1.1"
