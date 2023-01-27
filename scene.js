@@ -13,7 +13,7 @@ import {
 } from 'three';
 import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
-import { INTERSECTION, Brush, Evaluator } from 'three-bvh-csg';
+import { ADDITION, SUBTRACTION, DIFFERENCE, INTERSECTION, Brush, Evaluator } from 'three-bvh-csg';
 
 import {csv, randomInt} from './utils.js';
 
@@ -87,23 +87,23 @@ const svgData = svg.map(loader.parse);
  * Extrude Mesh for each set of SVG paths.
  * Get only the first mesh from each list of meshes produced by extrusion.
  *
- * @type {Mesh[]}
+ * @type {Brush[]}
  */
 const meshes = svgData.map(svgResult => {
     const meshList = MeshFromPath(svgResult.paths, true, material);
-    return meshList[0] ? meshList[0] : null;
+    return meshList[0] ? new Brush(meshList[0].geometry) : null;
 }).filter(Boolean);
 
 /**
  * Get right-angle rotations along vertical axis for all meshes.
  * Used for Boolean Intersections later.
  *
- * @type {Mesh[]}
+ * @type {Brush[]}
  */
 const rotations = meshes.map(mesh => {
     const rotated = mesh.clone().rotateY( INTERSECTION_ANGLE );
     rotated.updateMatrix();
-    return rotated;
+    return new Brush(rotated.geometry);
 });
 
 /**
@@ -124,8 +124,8 @@ for (let i = 0; i < meshes.length; i++) {
     let pairs = [];
     for (let j = 0; j < rotations.length; j++) {
         const meshIntersection = csgEvaluator.evaluate(
-            new Brush( meshes[i].geometry ),
-            new Brush( rotations[j].geometry ),
+            meshes[i],
+            rotations[j],
             INTERSECTION
         );
 
@@ -204,8 +204,8 @@ function animate() {
         // material.wireframe = !material.wireframe;
     }
 
-    // renderer.render( scene, camera );
-    renderer.render( scene, cameraOrtho );
+    renderer.render( scene, camera );
+    // renderer.render( scene, cameraOrtho );
 }
 
 if ( WebGL.isWebGLAvailable() ) {
