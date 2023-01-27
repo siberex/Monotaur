@@ -91,7 +91,7 @@ const svgData = svg.map(loader.parse);
  */
 const meshes = svgData.map(svgResult => {
     const meshList = MeshFromPath(svgResult.paths, true, material);
-    return meshList[0] ? new Brush(meshList[0].geometry) : null;
+    return meshList[0] ? meshList[0] : null;
 }).filter(Boolean);
 
 /**
@@ -101,9 +101,10 @@ const meshes = svgData.map(svgResult => {
  * @type {Brush[]}
  */
 const rotations = meshes.map(mesh => {
-    const rotated = mesh.clone().rotateY( INTERSECTION_ANGLE );
-    rotated.updateMatrix();
-    return new Brush(rotated.geometry);
+    let rotated = mesh.clone();
+    rotated.rotation.y = INTERSECTION_ANGLE;
+    rotated.updateMatrixWorld();
+    return rotated;
 });
 
 /**
@@ -230,7 +231,7 @@ if ( WebGL.isWebGLAvailable() ) {
  * @param centerOrigin {boolean} Center origin inside bounding box.
  *              Useful to ease rotations. Eliminating the need of translation or position move after rotation.
  * @param material {Material}
- * @returns {Mesh[]}
+ * @returns {Brush[]}
  *
  * @__PURE__
  */
@@ -286,7 +287,7 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
             geometry.translate(shapeWidth/-2, shapeHeight/-2, shapeWidth/-2);
         }
 
-        const mesh = new Mesh(geometry, material);
+        const mesh = new Brush(geometry, material);
 
         mesh.updateMatrix();
 
