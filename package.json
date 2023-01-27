@@ -24,6 +24,7 @@
     "three-bvh-csg": "^0.0.4"
   },
   "devDependencies": {
+    "@types/three": "^0.141.0",
     "http-server": "^14.1.1"
   }
 }
