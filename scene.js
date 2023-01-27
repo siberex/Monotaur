@@ -123,11 +123,11 @@ const csgEvaluator = new Evaluator();
 for (let i = 0; i < meshes.length; i++) {
     let pairs = [];
     for (let j = 0; j < rotations.length; j++) {
-
-        const brush1 = new Brush( meshes[i] );
-        const brush2 = new Brush( rotations[j] );
-
-        const meshIntersection = csgEvaluator.evaluate( brush1, brush2, INTERSECTION );
+        const meshIntersection = csgEvaluator.evaluate(
+            new Brush( meshes[i].geometry ),
+            new Brush( rotations[j].geometry ),
+            INTERSECTION
+        );
 
         // Note: Geometry vertices count in the resulting mesh will be much larger
         //       than the sum of source geometries vertices.
@@ -149,8 +149,8 @@ const group = new Group();
 
 // group.add(meshes[3]);
 let rotateFrom = 0;
-let rotateTo = randomInt(10);
-// let rotateTo = 1;
+// let rotateTo = randomInt(10);
+let rotateTo = 1;
 group.add(intersections[rotateFrom][rotateTo]);
 
 // group.add(new AxesHelper(1500));
@@ -192,8 +192,8 @@ function animate() {
 
         // Rotation to the next random digit
         rotateFrom = rotateTo
-        rotateTo = randomInt(10);
-        // rotateTo = (rotateTo + 1) % 10;
+        // rotateTo = randomInt(10);
+        rotateTo = (rotateTo + 1) % 10;
         group.add(intersections[rotateFrom][rotateTo]);
 
         // console.log(`${rotateFrom} → ${rotateTo}`);
