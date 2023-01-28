@@ -258,7 +258,7 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     pathShapes.forEach((shape, ind) => {
 
         // Take each shape and extrude it
-        const geometry = extrudeShape(shape, null, true)
+        const geometry = extrudeShape(shape, true)
 
         const mesh = new Brush(geometry, material);
 
@@ -328,14 +328,14 @@ function getShapeBbox(shape) {
  * Return extruded geometry for shape and specified extrusion depth.
  *
  * @param shape {Shape}
- * @param depth {Number} Optional. If omitted, extrusion depth will be equal to shape width.
- * @param centerOrigin {boolean} Center origin inside bounding box.
+ * @param centerOrigin {boolean} Optional. Center origin inside bounding box.
  *              Useful to ease rotations. Eliminating the need of translation or position move after rotation.
+ * @param depth {Number} Optional. If omitted, extrusion depth will be equal to shape width.
  * @returns {ExtrudeGeometry}
  *
  * @__PURE__
  */
-function extrudeShape(shape, depth, centerOrigin) {
+function extrudeShape(shape, centerOrigin = false, depth = null) {
     shape.closePath();
 
     const [shapeWidth, shapeHeight] = getShapeSize(shape);
