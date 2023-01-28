@@ -340,15 +340,19 @@ function extrudeShape(shape, centerOrigin = false, depth = null) {
 
     const [shapeWidth, shapeHeight] = getShapeSize(shape);
 
+    if (depth === null) {
+        depth = shapeWidth;
+    }
+
     const geometry = new ExtrudeGeometry(shape, {
-        depth: depth ?? shapeWidth,
+        depth,
         bevelEnabled: false
     });
 
     // Upon importing SVGs, paths are inverted on the Y axis.
     // It happens in the process of coordinate system mapping from 2d to 3d
     geometry.scale(1, -1, -1);
-    geometry.translate(0, shapeHeight, (depth ?? shapeWidth));
+    geometry.translate(0, shapeHeight, depth);
 
     if (centerOrigin) {
         // Get the actual bounding box:
@@ -356,7 +360,7 @@ function extrudeShape(shape, centerOrigin = false, depth = null) {
         // const bbox = geometry.boundingBox.getSize(new Vector3());
 
         // Offset each dimension half its length to center origin inside bounding box
-        geometry.translate(shapeWidth/-2, shapeHeight/-2, (depth ?? shapeWidth)/-2);
+        geometry.translate(shapeWidth/-2, shapeHeight/-2, depth/-2);
     }
 
     return geometry;
