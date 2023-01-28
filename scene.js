@@ -1,5 +1,6 @@
 import {
     AxesHelper,
+    Box2,
     ExtrudeGeometry,
     Group,
     MathUtils,
@@ -8,6 +9,7 @@ import {
     OrthographicCamera,
     PerspectiveCamera,
     Scene,
+    Vector2,
     Vector3,
     WebGLRenderer
 } from 'three';
@@ -263,25 +265,57 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
 
 
 /**
- * Get shape width and height from its []Vector2 coordinates
- * Note: width and height will include translation length from [0, 0] for translated shapes!
- * E.g. <path d="M55,990L110,1100L0,1100Z"/> will produce [110, 1100], and not [110, 110]!
+ * Get shape width and height from its []Vector2 coordinates.
  *
  * @param shape {Shape}
+ * @param withTranslation {boolean} Optional. Returned Width and Height will include translation length from [0, 0] for translated shapes.
+ *                                  E.g. <path d="M55,990L110,1100L0,1100Z"/> will produce [110, 1100], and not [110, 110].
  * @returns {[Number, Number]} [Width, Height]
  *
  * @__PURE__
  */
-function getShapeSize(shape) {
-    return shape.getPoints().reduce(
-        (acc, vec) => {
-            if (vec.width > acc[0]) acc[0] = vec.width;
-            if (vec.height > acc[1]) acc[1] = vec.height;
-            return acc;
-        },
-        [0, 0]
+function getShapeSize(shape, withTranslation = false) {
+    if (withTranslation) {
+        return shape.getPoints().reduce(
+            (acc, vec) => {
+                if (vec.width > acc[0]) acc[0] = vec.width;
+                if (vec.height > acc[1]) acc[1] = vec.height;
+                return acc;
+            },
+            [0, 0]
+        );
+    }
+
+    const [width, height] = getShapeBbox(shape).getSize(new Vector2());
+    return [width, height];
+}
+
+/**
+ *
+ * @param shape {Shape}
+ * @returns {Box2}
+ */
+function getShapeBbox(shape) {
+    let maxX = Number.MIN_SAFE_INTEGER,
+        maxY = Number.MIN_SAFE_INTEGER,
+        minX = Number.MAX_SAFE_INTEGER,
+        minY = Number.MAX_SAFE_INTEGER;
+
+    const points = shape.getPoints();
+
+    points.forEach(p => {
+        if (p.x > maxX) maxX = p.x;
+        if (p.y > maxY) maxY = p.y;
+        if (p.x < minX) minX = p.x;
+        if (p.y < minY) minY = p.y;
+    });
+
+    return new Box2(
+        new Vector2(minX, minY),
+        new Vector2(maxX, maxY)
     );
 }
+
 
 /**
  * Return extruded geometry for shape and specified extrusion depth.
