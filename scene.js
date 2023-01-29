@@ -39,7 +39,7 @@ const scene = new Scene();
 // https://threejs.org/docs/#api/en/cameras/PerspectiveCamera
 const camera = new PerspectiveCamera( 15, aspect, 0.1, 20000 );
 camera.position.z = 8000;
-// camera.position.y = 1000;
+// camera.position.y = 3000;
 
 // https://threejs.org/docs/#api/en/cameras/OrthographicCamera
 const cameraOrtho = new OrthographicCamera(- 0.5 * frustumSize * aspect, 0.5 * frustumSize * aspect, frustumSize / 2, frustumSize / -2, 0.1, 10000);
@@ -103,8 +103,10 @@ const meshes = svgData.map(svgResult => {
  * @type {Mesh[]}
  */
 const rotations = meshes.map(mesh => {
-    const rotated = mesh.clone().rotateY( INTERSECTION_ANGLE );
-    rotated.updateMatrix();
+    let rotated = mesh.clone();
+    rotated.rotation.y = INTERSECTION_ANGLE;
+    // It is important to apply all transformations:
+    rotated.updateMatrixWorld();
     return rotated;
 });
 
@@ -281,11 +283,8 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     // It happens in the process of coordinate system mapping from 2d to 3d
     mesh.scale.y = -1;
 
-    // Center origin inside bounding box. To be able to rotate mesh around the center.
-    // const bbox = new Box3().setFromObject(mesh);
-    // const translationVector = bbox.getCenter(new Vector3());
-    const translationVector = new Vector3(w/2, -h/2, w/2);
-    mesh.position.sub(translationVector);
+    // Reset origin to the bounding box center. To be able to rotate mesh around the center.
+    mesh.geometry.center();
 
     mesh.updateMatrixWorld();
 
