@@ -247,6 +247,10 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     const pathShapes = svgPath.toShapes(false, true);
     // const pathShapes = SVGLoader.createShapes(svgPath);
 
+    if (pathShapes.length === 0 || !pathShapes[0]) {
+        return [];
+    }
+
     /**
      * @type {Mesh}
      */
