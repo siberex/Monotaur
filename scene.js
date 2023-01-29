@@ -105,7 +105,7 @@ const rotations = meshes.map(mesh => {
     let rotated = mesh.clone();
     rotated.rotation.y = INTERSECTION_ANGLE;
     // It is important to apply all transformations:
-    rotated.updateMatrixWorld();
+    rotated.updateMatrix();
     return rotated;
 });
 
@@ -253,7 +253,9 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     const pathShapes = svgPath.toShapes(false, true);
     // const pathShapes = SVGLoader.createShapes(svgPath);
 
-    let extrusionDepth = null;
+    if (pathShapes.length === 0 || !pathShapes[0]) {
+        return [];
+    }
 
     /**
      * @type {Evaluator}
@@ -264,17 +266,20 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     }
 
     /**
-     * @type {Brush}
+     * @type {Mesh}
      */
     let mesh;
 
     // Get base shape width to determine extrusion depth
-    const [w, h] = getShapeSize(pathShapes[0]);
+    const [w] = getShapeSize(pathShapes[0]);
 
     // Each path has an array of shapes
     pathShapes.forEach((shape, ind) => {
         // Take each shape and extrude it
-        let geometry = extrudeShape(shape, w);
+        let geometry = new ExtrudeGeometry(shape, {
+            depth: w,
+            bevelEnabled: false
+        });
         if (ind === 0) {
             // Initial shape
             mesh = new Brush(geometry, material);
@@ -286,16 +291,16 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
                 SUBTRACTION
             );
         }
+        mesh.matrixAutoUpdate = false;
     });
 
     // Upon importing SVGs, paths are inverted on the Y axis.
-    // It happens in the process of coordinate system mapping from 2d to 3d
-    mesh.scale.y = -1;
+    // It happens in the process of coordinate system mapping from 2d to 3d.
+    // Important to scale geometry by two axis to not get inside-out shape.
+    mesh.geometry.scale(1, -1, -1);
 
-    // Reset origin to the bounding box center. To be able to rotate mesh around the center.
+    // Reset origin to the center of the bounding box. To be able to rotate mesh around the center later.
     mesh.geometry.center();
-
-    mesh.updateMatrixWorld();
 
     return [mesh];
 }
@@ -305,24 +310,11 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
  * Get shape width and height from its []Vector2 coordinates.
  *
  * @param shape {Shape}
- * @param withTranslation {boolean} Optional. Returned Width and Height will include translation length from [0, 0] for translated shapes.
- *                                  E.g. <path d="M55,990L110,1100L0,1100Z"/> will produce [110, 1100], and not [110, 110].
  * @returns {[Number, Number]} [Width, Height]
  *
  * @__PURE__
  */
-function getShapeSize(shape, withTranslation = false) {
-    if (withTranslation) {
-        return shape.getPoints().reduce(
-            (acc, vec) => {
-                if (vec.width > acc[0]) acc[0] = vec.width;
-                if (vec.height > acc[1]) acc[1] = vec.height;
-                return acc;
-            },
-            [0, 0]
-        );
-    }
-
+function getShapeSize(shape) {
     const [width, height] = getShapeBbox(shape).getSize(new Vector2());
     return [width, height];
 }
@@ -351,30 +343,6 @@ function getShapeBbox(shape) {
         new Vector2(minX, minY),
         new Vector2(maxX, maxY)
     );
-}
-
-
-/**
- * Return extruded geometry for shape and specified extrusion depth.
- *
- * @param shape {Shape}
- * @param depth {Number} Optional. If omitted, extrusion depth will be equal to shape width.
- * @returns {ExtrudeGeometry}
- *
- * @__PURE__
- */
-function extrudeShape(shape, depth = null) {
-    // shape.closePath();
-
-    if (depth === null) {
-        const [shapeWidth] = getShapeSize(shape, false);
-        depth = shapeWidth;
-    }
-
-    return new ExtrudeGeometry(shape, {
-        depth,
-        bevelEnabled: false
-    });
 }
 
 
