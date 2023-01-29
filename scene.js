@@ -280,8 +280,9 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     });
 
     // Upon importing SVGs, paths are inverted on the Y axis.
-    // It happens in the process of coordinate system mapping from 2d to 3d
-    mesh.scale.y = -1;
+    // It happens in the process of coordinate system mapping from 2d to 3d.
+    // Important scale geometry by two axis to not get inside-out shape.
+    mesh.geometry.scale(1, -1, -1);
 
     // Reset origin to the bounding box center. To be able to rotate mesh around the center.
     mesh.geometry.center();
@@ -358,7 +359,7 @@ function extrudeShape(shape, depth = null) {
     // shape.closePath();
 
     if (depth === null) {
-        const [shapeWidth] = getShapeSize(shape, false);
+        const [shapeWidth] = getShapeSize(shape);
         depth = shapeWidth;
     }
 
