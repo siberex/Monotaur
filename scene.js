@@ -1,5 +1,6 @@
 import {
     AxesHelper,
+    Box2,
     ExtrudeGeometry,
     Group,
     MathUtils,
@@ -11,14 +12,14 @@ import {
     Plane,
     PointLight,
     Scene,
+    Vector2,
     Vector3,
     WebGLRenderer
 } from 'three';
 import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
-import { CSG } from 'three-csg-ts';
-
-import {csv, randomInt} from './utils.js';
+import {CSG} from 'three-csg-ts';
+import {randomInt} from "./utils.js";
 
 // Animation rotation direction (false = CW, true = CCW)
 const ROTATE_CCW = false;
@@ -132,7 +133,9 @@ const meshes = svgData.map(svgResult => {
  * @type {Mesh[]}
  */
 const rotations = meshes.map(mesh => {
-    const rotated = mesh.clone().rotateY( INTERSECTION_ANGLE );
+    let rotated = mesh.clone();
+    rotated.rotation.y = INTERSECTION_ANGLE;
+    // It is important to apply all transformations:
     rotated.updateMatrix();
     return rotated;
 });
@@ -276,53 +279,87 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     }
 
     // Note: To correctly extract holes, use SVGLoader.createShapes(), not path.toShapes()
-    const shapes = SVGLoader.createShapes(svgPath);
+    const pathShapes = svgPath.toShapes(false, true);
+    // const pathShapes = SVGLoader.createShapes(svgPath);
 
-    let result = [];
+    if (pathShapes.length === 0 || !pathShapes[0]) {
+        return [];
+    }
+
+    /**
+     * @type {Mesh}
+     */
+    let mesh;
+
+    // Get base shape width to determine extrusion depth
+    const [w] = getShapeSize(pathShapes[0]);
 
     // Each path has an array of shapes
-    shapes.forEach(shape => {
-        // Get shape width and height from its []Vector2 coordinates
-        // Note: width and height will include translation length from [0, 0] for translated shapes
-        // Example: <path d="M55,990L110,1100L0,1100Z"/>
-        //          Dimensions will be [110, 1100] and not [110, 110]
-        const [shapeWidth, shapeHeight] = shape.getPoints().reduce(
-            (acc, vec) => {
-                if (vec.width > acc[0]) acc[0] = vec.width;
-                if (vec.height > acc[1]) acc[1] = vec.height;
-                return acc;
-            },
-            [0, 0]
-        );
-
+    pathShapes.forEach((shape, ind) => {
         // Take each shape and extrude it
-        const geometry = new ExtrudeGeometry(shape, {
-            depth: shapeWidth,
+        let geometry = new ExtrudeGeometry(shape, {
+            depth: w,
             bevelEnabled: false
         });
-
-        // Upon importing SVGs, paths are inverted on the Y axis.
-        // It happens in the process of coordinate system mapping from 2d to 3d
-        geometry.scale(1, -1, -1);
-        geometry.translate(0, shapeHeight, shapeWidth);
-
-        if (centerOrigin) {
-            // Get actual bounding box:
-            // geometry.computeBoundingBox();
-            // const bbox = geometry.boundingBox.getSize(new Vector3());
-
-            // Offset each dimension half its length to center origin inside bounding box
-            geometry.translate(shapeWidth/-2, shapeHeight/-2, shapeWidth/-2);
+        if (ind === 0) {
+            // Initial shape
+            mesh = new Mesh(geometry, material);
+        } else {
+            // Cut-out holes.
+            mesh = CSG.subtract(mesh, new Mesh(geometry, material));
         }
-
-        const mesh = new Mesh(geometry, material);
-
-        mesh.updateMatrix();
-
-        result.push(mesh)
+        mesh.matrixAutoUpdate = false;
     });
 
-    return result;
+    // Upon importing SVGs, paths are inverted on the Y axis.
+    // It happens in the process of coordinate system mapping from 2d to 3d.
+    // Important to scale geometry by two axis to not get inside-out shape.
+    mesh.geometry.scale(1, -1, -1);
+
+    // Reset origin to the center of the bounding box. To be able to rotate mesh around the center later.
+    mesh.geometry.center();
+
+    return [mesh];
+}
+
+
+/**
+ * Get shape width and height from its []Vector2 coordinates.
+ *
+ * @param shape {Shape}
+ * @returns {[Number, Number]} [Width, Height]
+ *
+ * @__PURE__
+ */
+function getShapeSize(shape) {
+    const [width, height] = getShapeBbox(shape).getSize(new Vector2());
+    return [width, height];
+}
+
+/**
+ *
+ * @param shape {Shape}
+ * @returns {Box2}
+ */
+function getShapeBbox(shape) {
+    let maxX = Number.MIN_SAFE_INTEGER,
+        maxY = Number.MIN_SAFE_INTEGER,
+        minX = Number.MAX_SAFE_INTEGER,
+        minY = Number.MAX_SAFE_INTEGER;
+
+    const points = shape.getPoints();
+
+    points.forEach(p => {
+        if (p.x > maxX) maxX = p.x;
+        if (p.y > maxY) maxY = p.y;
+        if (p.x < minX) minX = p.x;
+        if (p.y < minY) minY = p.y;
+    });
+
+    return new Box2(
+        new Vector2(minX, minY),
+        new Vector2(maxX, maxY)
+    );
 }
 
 
