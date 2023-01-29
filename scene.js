@@ -15,6 +15,7 @@ import {
 } from 'three';
 import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
+import {CSG} from 'three-csg-ts';
 import {Brush, Evaluator, INTERSECTION, SUBTRACTION} from 'three-bvh-csg';
 import {randomInt} from "./utils.js";
 
@@ -122,15 +123,10 @@ const vertexCounts = [];
  * @type {Mesh[][]}
  */
 let intersections = [];
-const csgEvaluator = new Evaluator();
 for (let i = 0; i < meshes.length; i++) {
     let pairs = [];
     for (let j = 0; j < rotations.length; j++) {
-        const meshIntersection = csgEvaluator.evaluate(
-            meshes[i],
-            rotations[j],
-            INTERSECTION
-        );
+        const meshIntersection = csgIntersect(meshes[i], rotations[j]);
 
         // Note: Geometry vertices count in the resulting mesh will be much larger
         //       than the sum of source geometries vertices.
@@ -259,15 +255,7 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     }
 
     /**
-     * @type {Evaluator}
-     */
-    let csgEvaluator;
-    if (pathShapes.length > 1) {
-        csgEvaluator = new Evaluator();
-    }
-
-    /**
-     * @type {Brush}
+     * @type {Mesh}
      */
     let mesh;
 
@@ -283,14 +271,10 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
         });
         if (ind === 0) {
             // Initial shape
-            mesh = new Brush(geometry, material);
+            mesh = new Mesh(geometry, material);
         } else {
             // Cut-out holes.
-            mesh = csgEvaluator.evaluate(
-                mesh,
-                new Brush(geometry, material),
-                SUBTRACTION
-            );
+            mesh = csgSubtract(mesh, new Mesh(geometry, material));
         }
         mesh.matrixAutoUpdate = false;
     });
@@ -305,6 +289,58 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     mesh.geometry.center();
 
     return [mesh];
+}
+
+
+/**
+ *
+ * @param mesh1 {Mesh}
+ * @param mesh2 {Mesh}
+ * @returns {Mesh}
+ */
+function csgSubtract(mesh1, mesh2) {
+    return CSG.subtract(mesh1, mesh2);
+}
+
+/**
+ *
+ * @param mesh1 {Mesh}
+ * @param mesh2 {Mesh}
+ * @returns {Mesh}
+ */
+function csgIntersect(mesh1, mesh2) {
+    return CSG.intersect(mesh1, mesh2);
+}
+
+
+/**
+ *
+ * @param mesh1 {Mesh}
+ * @param mesh2 {Mesh}
+ * @returns {Mesh}
+ */
+function bhvCsgSubtract(mesh1, mesh2) {
+    const csgEvaluator = new Evaluator();
+    return csgEvaluator.evaluate(
+        new Brush(mesh1.geometry, mesh1.material),
+        new Brush(mesh2.geometry, mesh2.material),
+        SUBTRACTION
+    );
+}
+
+/**
+ *
+ * @param mesh1 {Mesh}
+ * @param mesh2 {Mesh}
+ * @returns {Mesh}
+ */
+function bhvCsgIntersect(mesh1, mesh2) {
+    const csgEvaluator = new Evaluator();
+    return csgEvaluator.evaluate(
+        new Brush(mesh1.geometry, mesh1.material),
+        new Brush(mesh2.geometry, mesh2.material),
+        INTERSECTION
+    );
 }
 
 

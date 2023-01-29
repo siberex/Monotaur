@@ -21,7 +21,8 @@
   "dependencies": {
     "es-module-shims": "^1.5.9",
     "three": "^0.141.0",
-    "three-bvh-csg": "^0.0.4"
+    "three-bvh-csg": "^0.0.4",
+    "three-csg-ts": "^3.1.11"
   },
   "devDependencies": {
     "@types/three": "^0.141.0",
