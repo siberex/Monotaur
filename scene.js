@@ -24,7 +24,7 @@ const ROTATE_CCW = false;
 // Rotation around Y-axis, which is directed from bottom to top
 const INTERSECTION_ANGLE = MathUtils.degToRad(90) * (ROTATE_CCW ? -1 : 1);
 // Rotation speed: turn this amount with each animation  frame
-const ROTATION_STEP = MathUtils.degToRad(1.5) * (ROTATE_CCW ? 1 : -1);
+const ROTATION_STEP = MathUtils.degToRad(0.5) * (ROTATE_CCW ? 1 : -1);
 
 
 let SCREEN_WIDTH = window.innerWidth;
@@ -37,8 +37,8 @@ const scene = new Scene();
 
 // https://threejs.org/docs/#api/en/cameras/PerspectiveCamera
 const camera = new PerspectiveCamera( 15, aspect, 0.1, 20000 );
-camera.position.z = 8000;
-// camera.position.y = 3000;
+camera.position.z = 6000;
+camera.position.y = 2000;
 
 // https://threejs.org/docs/#api/en/cameras/OrthographicCamera
 const cameraOrtho = new OrthographicCamera(- 0.5 * frustumSize * aspect, 0.5 * frustumSize * aspect, frustumSize / 2, frustumSize / -2, 0.1, 10000);
@@ -57,7 +57,7 @@ window.addEventListener('resize', onWindowResize);
 // https://threejs.org/docs/#examples/en/loaders/SVGLoader
 const loader = new SVGLoader();
 // const material = new MeshNormalMaterial({ wireframe: false, transparent: true, opacity: 0.7 });
-const material = new MeshNormalMaterial({ wireframe: false });
+const material = new MeshNormalMaterial({ wireframe: true });
 
 
 /**
@@ -152,16 +152,15 @@ const group = new Group();
 
 // group.add(meshes[3]);
 let rotateFrom = 0;
-let rotateTo = randomInt(10);
-// let rotateTo = 1;
+// let rotateTo = randomInt(10);
+let rotateTo = 1;
 group.add(intersections[rotateFrom][rotateTo]);
-
-// group.add(new AxesHelper(1500));
+// group.add(rotations[rotateFrom]);
 
 // Group to rotate
 const rotationGroup = new Group();
 rotationGroup.add(group);
-// rotationGroup.add(new AxesHelper(1500));
+rotationGroup.add(new AxesHelper(1500));
 
 // Add rotation group to the scene
 scene.add(rotationGroup);
@@ -188,6 +187,7 @@ function animate() {
         // console.log(rotationPhase);
 
         group.remove(intersections[rotateFrom][rotateTo]);
+        // group.remove(rotations[rotateFrom]);
 
         // Reset rotation by reverse-rotating newly-added model back to origin,
         // because rotationGroup were rotated by 90 degrees.
@@ -195,9 +195,10 @@ function animate() {
 
         // Rotation to the next random digit
         rotateFrom = rotateTo
-        rotateTo = randomInt(10);
-        // rotateTo = (rotateTo + 1) % 10;
+        // rotateTo = randomInt(10);
+        rotateTo = (rotateTo + 1) % 10;
         group.add(intersections[rotateFrom][rotateTo]);
+        // group.add(rotations[rotateFrom]);
 
         // console.log(`${rotateFrom} → ${rotateTo}`);
 
@@ -233,7 +234,7 @@ if ( WebGL.isWebGLAvailable() ) {
  * @param centerOrigin {boolean} Center origin inside bounding box.
  *              Useful to ease rotations. Eliminating the need of translation or position move after rotation.
  * @param material {Material}
- * @returns {Brush[]}
+ * @returns {Mesh[]}
  *
  * @__PURE__
  */
@@ -266,7 +267,7 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     }
 
     /**
-     * @type {Mesh}
+     * @type {Brush}
      */
     let mesh;
 
@@ -297,6 +298,7 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     // Upon importing SVGs, paths are inverted on the Y axis.
     // It happens in the process of coordinate system mapping from 2d to 3d.
     // Important to scale geometry by two axis to not get inside-out shape.
+
     mesh.geometry.scale(1, -1, -1);
 
     // Reset origin to the center of the bounding box. To be able to rotate mesh around the center later.
