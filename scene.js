@@ -19,6 +19,8 @@ import {mergeVertices} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {CSG} from 'three-csg-ts';
 import {Brush, Evaluator, INTERSECTION, SUBTRACTION} from 'three-bvh-csg';
 import {randomInt} from "./utils.js";
+import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
+import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 
 // Animation rotation direction (false = CW, true = CCW)
 const ROTATE_CCW = false;
@@ -335,6 +337,9 @@ function bhvCsgSubtract(mesh1, mesh2) {
     mesh1.geometry.groups = [];
     mesh2.geometry.groups = [];
 
+    mesh1.updateMatrix();
+    mesh2.updateMatrix();
+
     return csgEvaluator.evaluate(
         new Brush(mesh1.geometry, mesh1.material),
         new Brush(mesh2.geometry, mesh2.material),
@@ -354,6 +359,9 @@ function bhvCsgIntersect(mesh1, mesh2) {
     // three-bvh-csg: It is recommended to remove groups from a geometry before creating a brush if multi-material support is not required.
     mesh1.geometry.groups = [];
     mesh2.geometry.groups = [];
+
+    mesh1.updateMatrix();
+    mesh2.updateMatrix();
 
     return csgEvaluator.evaluate(
         new Brush(mesh1.geometry, mesh1.material),
@@ -460,3 +468,34 @@ function onWindowResize() {
     cameraOrtho.bottom = frustumSize / -2;
     cameraOrtho.updateProjectionMatrix();
 }
+
+
+// Debug stuff
+const link = document.createElement( 'a' );
+link.style.display = 'none';
+document.body.appendChild( link );
+
+function save( blob, filename ) {
+    link.href = URL.createObjectURL( blob );
+    link.download = filename;
+    link.click();
+}
+
+function saveArrayBuffer( buffer, filename ) {
+    save( new Blob( [ buffer ], { type: 'application/octet-stream' } ), filename );
+}
+
+function exportStlBinary() {
+    const exporter = new STLExporter();
+
+    const result = exporter.parse( meshes[0], { binary: true } );
+    saveArrayBuffer( result, '0.stl' );
+}
+
+const gui = new GUI();
+
+const params = {
+    exportStlBinary: exportStlBinary
+};
+gui.add( params, 'exportStlBinary' ).name( 'Export STL' );
+gui.open();
