@@ -14,15 +14,20 @@
 
   <!--
     JSPM Generator Import Map
-    Edit URL: https://generator.jspm.io/#U2NhYGDhD80rySzJSU1hKMkoSk3VTS5O1y0pdjDWM9QzNICIORjoGZoY6aHx9FMrEnMLclKL9bOKc/WTEwsSkzJzMksygQLhqUnuPnpZxfg05OQnpqQWFesHh7n7gJlA9QDxTRbakQA
+    Edit URL: https://generator.jspm.io/#U2NhYGDhD80rySzJSU1hKMkoSk3VTSrL0E0uTncw0DPQM4GIAdmGJoZ6Bqg8/dSKxNyCnNRi/aziXP3kxILEpMyczJJMoEB4apK7j15WMT4NOfmJKalFxfrBYe4+YCZQPQC4kq2HkQA
   -->
   <script type="importmap">
       {
         "imports": {
           "three": "./node_modules/three/build/three.module.js",
-          "three-csg-ts": "./vendor/three-csg-ts/index.js",
+          "three-bvh-csg": "./node_modules/three-bvh-csg/src/index.js",
           "three/examples/jsm/capabilities/WebGL.js": "./node_modules/three/examples/jsm/capabilities/WebGL.js",
           "three/examples/jsm/loaders/SVGLoader.js": "./node_modules/three/examples/jsm/loaders/SVGLoader.js"
+        },
+        "scopes": {
+          "/node_modules/three-bvh-csg/": {
+            "three-mesh-bvh": "./node_modules/three-mesh-bvh/src/index.js"
+          }
         },
         "extension": "js"
       }
