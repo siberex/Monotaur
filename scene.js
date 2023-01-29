@@ -15,6 +15,7 @@ import {
 } from 'three';
 import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
+import {mergeVertices} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {CSG} from 'three-csg-ts';
 import {Brush, Evaluator, INTERSECTION, SUBTRACTION} from 'three-bvh-csg';
 import {randomInt} from "./utils.js";
@@ -38,7 +39,7 @@ const scene = new Scene();
 
 // https://threejs.org/docs/#api/en/cameras/PerspectiveCamera
 const camera = new PerspectiveCamera( 15, aspect, 0.1, 20000 );
-camera.position.z = 6000;
+camera.position.z = 8000;
 camera.position.y = 2000;
 
 // https://threejs.org/docs/#api/en/cameras/OrthographicCamera
@@ -126,7 +127,7 @@ let intersections = [];
 for (let i = 0; i < meshes.length; i++) {
     let pairs = [];
     for (let j = 0; j < rotations.length; j++) {
-        const meshIntersection = csgIntersect(meshes[i], rotations[j]);
+        const meshIntersection = bhvCsgIntersect(meshes[i], rotations[j]);
 
         // Note: Geometry vertices count in the resulting mesh will be much larger
         //       than the sum of source geometries vertices.
@@ -204,8 +205,8 @@ function animate() {
         // material.wireframe = !material.wireframe;
     }
 
-    renderer.render( scene, camera );
-    // renderer.render( scene, cameraOrtho );
+    // renderer.render( scene, camera );
+    renderer.render( scene, cameraOrtho );
 }
 
 if ( WebGL.isWebGLAvailable() ) {
@@ -247,6 +248,9 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     }
 
     // Note: To correctly extract holes, use SVGLoader.createShapes(), not path.toShapes()
+    /**
+     * @type {Shape[]}
+     */
     const pathShapes = svgPath.toShapes(false, true);
     // const pathShapes = SVGLoader.createShapes(svgPath);
 
@@ -265,16 +269,21 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     // Each path has an array of shapes
     pathShapes.forEach((shape, ind) => {
         // Take each shape and extrude it
+        shape.closePath();
+
         let geometry = new ExtrudeGeometry(shape, {
             depth: w,
             bevelEnabled: false
         });
+
+        geometry = mergeVertices(geometry);
+
         if (ind === 0) {
             // Initial shape
             mesh = new Mesh(geometry, material);
         } else {
             // Cut-out holes.
-            mesh = csgSubtract(mesh, new Mesh(geometry, material));
+            mesh = bhvCsgSubtract(mesh, new Mesh(geometry, material));
         }
         mesh.matrixAutoUpdate = false;
     });
@@ -321,6 +330,11 @@ function csgIntersect(mesh1, mesh2) {
  */
 function bhvCsgSubtract(mesh1, mesh2) {
     const csgEvaluator = new Evaluator();
+
+    // three-bvh-csg: It is recommended to remove groups from a geometry before creating a brush if multi-material support is not required.
+    mesh1.geometry.groups = [];
+    mesh2.geometry.groups = [];
+
     return csgEvaluator.evaluate(
         new Brush(mesh1.geometry, mesh1.material),
         new Brush(mesh2.geometry, mesh2.material),
@@ -336,6 +350,11 @@ function bhvCsgSubtract(mesh1, mesh2) {
  */
 function bhvCsgIntersect(mesh1, mesh2) {
     const csgEvaluator = new Evaluator();
+
+    // three-bvh-csg: It is recommended to remove groups from a geometry before creating a brush if multi-material support is not required.
+    mesh1.geometry.groups = [];
+    mesh2.geometry.groups = [];
+
     return csgEvaluator.evaluate(
         new Brush(mesh1.geometry, mesh1.material),
         new Brush(mesh2.geometry, mesh2.material),
