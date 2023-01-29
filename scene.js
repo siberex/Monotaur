@@ -38,7 +38,7 @@ const scene = new Scene();
 // https://threejs.org/docs/#api/en/cameras/PerspectiveCamera
 const camera = new PerspectiveCamera( 15, aspect, 0.1, 20000 );
 camera.position.z = 8000;
-// camera.position.y = 3000;
+// camera.position.y = 1000;
 
 // https://threejs.org/docs/#api/en/cameras/OrthographicCamera
 const cameraOrtho = new OrthographicCamera(- 0.5 * frustumSize * aspect, 0.5 * frustumSize * aspect, frustumSize / 2, frustumSize / -2, 0.1, 10000);
@@ -201,8 +201,8 @@ function animate() {
         // material.wireframe = !material.wireframe;
     }
 
-    renderer.render( scene, camera );
-    // renderer.render( scene, cameraOrtho );
+    // renderer.render( scene, camera );
+    renderer.render( scene, cameraOrtho );
 }
 
 if ( WebGL.isWebGLAvailable() ) {
@@ -262,7 +262,10 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     // Each path has an array of shapes
     pathShapes.forEach((shape, ind) => {
         // Take each shape and extrude it
-        let geometry = extrudeShape(shape, w);
+        let geometry = new ExtrudeGeometry(shape, {
+            depth: w,
+            bevelEnabled: false
+        });
         if (ind === 0) {
             // Initial shape
             mesh = new Mesh(geometry, material);
@@ -289,24 +292,11 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
  * Get shape width and height from its []Vector2 coordinates.
  *
  * @param shape {Shape}
- * @param withTranslation {boolean} Optional. Returned Width and Height will include translation length from [0, 0] for translated shapes.
- *                                  E.g. <path d="M55,990L110,1100L0,1100Z"/> will produce [110, 1100], and not [110, 110].
  * @returns {[Number, Number]} [Width, Height]
  *
  * @__PURE__
  */
-function getShapeSize(shape, withTranslation = false) {
-    if (withTranslation) {
-        return shape.getPoints().reduce(
-            (acc, vec) => {
-                if (vec.width > acc[0]) acc[0] = vec.width;
-                if (vec.height > acc[1]) acc[1] = vec.height;
-                return acc;
-            },
-            [0, 0]
-        );
-    }
-
+function getShapeSize(shape) {
     const [width, height] = getShapeBbox(shape).getSize(new Vector2());
     return [width, height];
 }
@@ -335,30 +325,6 @@ function getShapeBbox(shape) {
         new Vector2(minX, minY),
         new Vector2(maxX, maxY)
     );
-}
-
-
-/**
- * Return extruded geometry for shape and specified extrusion depth.
- *
- * @param shape {Shape}
- * @param depth {Number} Optional. If omitted, extrusion depth will be equal to shape width.
- * @returns {ExtrudeGeometry}
- *
- * @__PURE__
- */
-function extrudeShape(shape, depth = null) {
-    // shape.closePath();
-
-    if (depth === null) {
-        const [shapeWidth] = getShapeSize(shape);
-        depth = shapeWidth;
-    }
-
-    return new ExtrudeGeometry(shape, {
-        depth,
-        bevelEnabled: false
-    });
 }
 
 
