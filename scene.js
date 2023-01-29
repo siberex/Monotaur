@@ -15,9 +15,8 @@ import {
 } from 'three';
 import {SVGLoader} from 'three/examples/jsm/loaders/SVGLoader.js';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
-import { CSG } from 'three-csg-ts';
-
-import {csv, randomInt} from './utils.js';
+import {CSG} from 'three-csg-ts';
+import {randomInt} from "./utils.js";
 
 // Animation rotation direction (false = CW, true = CCW)
 const ROTATE_CCW = false;
@@ -106,7 +105,7 @@ const rotations = meshes.map(mesh => {
     let rotated = mesh.clone();
     rotated.rotation.y = INTERSECTION_ANGLE;
     // It is important to apply all transformations:
-    rotated.updateMatrixWorld();
+    rotated.updateMatrix();
     return rotated;
 });
 
@@ -248,23 +247,13 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     const pathShapes = svgPath.toShapes(false, true);
     // const pathShapes = SVGLoader.createShapes(svgPath);
 
-    let extrusionDepth = null;
-
     /**
-     * @type {Evaluator}
-     */
-    let csgEvaluator;
-    if (pathShapes.length > 1) {
-        csgEvaluator = new Evaluator();
-    }
-
-    /**
-     * @type {Brush}
+     * @type {Mesh}
      */
     let mesh;
 
     // Get base shape width to determine extrusion depth
-    const [w, h] = getShapeSize(pathShapes[0]);
+    const [w] = getShapeSize(pathShapes[0]);
 
     // Each path has an array of shapes
     pathShapes.forEach((shape, ind) => {
@@ -277,17 +266,16 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
             // Cut-out holes.
             mesh = CSG.subtract(mesh, new Mesh(geometry, material));
         }
+        mesh.matrixAutoUpdate = false;
     });
 
     // Upon importing SVGs, paths are inverted on the Y axis.
     // It happens in the process of coordinate system mapping from 2d to 3d.
-    // Important scale geometry by two axis to not get inside-out shape.
+    // Important to scale geometry by two axis to not get inside-out shape.
     mesh.geometry.scale(1, -1, -1);
 
-    // Reset origin to the bounding box center. To be able to rotate mesh around the center.
+    // Reset origin to the center of the bounding box. To be able to rotate mesh around the center later.
     mesh.geometry.center();
-
-    mesh.updateMatrixWorld();
 
     return [mesh];
 }
