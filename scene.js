@@ -200,8 +200,8 @@ function animate() {
         // material.wireframe = !material.wireframe;
     }
 
-    // renderer.render( scene, camera );
-    renderer.render( scene, cameraOrtho );
+    renderer.render( scene, camera );
+    // renderer.render( scene, cameraOrtho );
 }
 
 if ( WebGL.isWebGLAvailable() ) {
@@ -243,24 +243,53 @@ function MeshFromPath(svgPath, centerOrigin = false, material = null) {
     }
 
     // Note: To correctly extract holes, use SVGLoader.createShapes(), not path.toShapes()
-    const pathShapes = SVGLoader.createShapes(svgPath);
+    const pathShapes = svgPath.toShapes(false, true);
+    // const pathShapes = SVGLoader.createShapes(svgPath);
 
-    let result = [];
+    let extrusionDepth = null;
+
+    /**
+     * @type {Evaluator}
+     */
+    let csgEvaluator;
+    if (pathShapes.length > 1) {
+        csgEvaluator = new Evaluator();
+    }
+
+    /**
+     * @type {Brush}
+     */
+    let mesh;
+
+    // Get base shape width to determine extrusion depth
+    const [w, h] = getShapeSize(pathShapes[0]);
 
     // Each path has an array of shapes
     pathShapes.forEach((shape, ind) => {
-
         // Take each shape and extrude it
-        const geometry = extrudeShape(shape, true)
-
-        const mesh = new Mesh(geometry, material);
-
-        mesh.updateMatrixWorld();
-
-        result.push(mesh)
+        let geometry = extrudeShape(shape, w);
+        if (ind === 0) {
+            // Initial shape
+            mesh = new Mesh(geometry, material);
+        } else {
+            // Cut-out holes.
+            mesh = CSG.subtract(mesh, new Mesh(geometry, material));
+        }
     });
 
-    return result;
+    // Upon importing SVGs, paths are inverted on the Y axis.
+    // It happens in the process of coordinate system mapping from 2d to 3d
+    mesh.scale.y = -1;
+
+    // Center origin inside bounding box. To be able to rotate mesh around the center.
+    // const bbox = new Box3().setFromObject(mesh);
+    // const translationVector = bbox.getCenter(new Vector3());
+    const translationVector = new Vector3(w/2, -h/2, w/2);
+    mesh.position.sub(translationVector);
+
+    mesh.updateMatrixWorld();
+
+    return [mesh];
 }
 
 
@@ -321,42 +350,23 @@ function getShapeBbox(shape) {
  * Return extruded geometry for shape and specified extrusion depth.
  *
  * @param shape {Shape}
- * @param centerOrigin {boolean} Optional. Center origin inside bounding box.
- *              Useful to ease rotations. Eliminating the need of translation or position move after rotation.
  * @param depth {Number} Optional. If omitted, extrusion depth will be equal to shape width.
  * @returns {ExtrudeGeometry}
  *
  * @__PURE__
  */
-function extrudeShape(shape, centerOrigin = false, depth = null) {
-    shape.closePath();
-
-    const [shapeWidth, shapeHeight] = getShapeSize(shape);
+function extrudeShape(shape, depth = null) {
+    // shape.closePath();
 
     if (depth === null) {
+        const [shapeWidth] = getShapeSize(shape, false);
         depth = shapeWidth;
     }
 
-    const geometry = new ExtrudeGeometry(shape, {
+    return new ExtrudeGeometry(shape, {
         depth,
         bevelEnabled: false
     });
-
-    // Upon importing SVGs, paths are inverted on the Y axis.
-    // It happens in the process of coordinate system mapping from 2d to 3d
-    geometry.scale(1, -1, -1);
-    geometry.translate(0, shapeHeight, depth);
-
-    if (centerOrigin) {
-        // Get the actual bounding box:
-        // geometry.computeBoundingBox();
-        // const bbox = geometry.boundingBox.getSize(new Vector3());
-
-        // Offset each dimension half its length to center origin inside bounding box
-        geometry.translate(shapeWidth/-2, shapeHeight/-2, depth/-2);
-    }
-
-    return geometry;
 }
 
 
